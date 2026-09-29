@@ -508,12 +508,12 @@ export const AffiliateOnboardingModal: React.FC<Props> = ({
           name: specialistName.trim() || user.displayName,
           businessName: finalBusinessName,
           category,
-          categoryLabel: selectedCatObj.label,
+          categoryLabel: selectedCatObj?.label || categoryLabel || 'Servicios Profesionales',
           description: story.trim() || 'Servicios profesionales con anticipo garantizado.',
           story: story.trim(),
-          state: selectedStateObj.name,
-          city,
-          address: address.trim() || `${city}, ${selectedStateObj.name}`,
+          state: stateName || 'Principal',
+          city: cityName || 'Principal',
+          address: streetAddress.trim() || `${cityName}, ${stateName}`,
           lat: 19.4326,
           lng: -99.1332,
           phone: cleanPhone,
@@ -806,43 +806,28 @@ export const AffiliateOnboardingModal: React.FC<Props> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-800 mb-1">
-                    Estado de la República Mexicana *
+                    {subdivisionLabel} *
                   </label>
-                  <select
-                    value={stateCode}
-                    onChange={(e) => {
-                      const newCode = e.target.value;
-                      setStateCode(newCode);
-                      const stateObj = MEXICAN_STATES.find((s) => s.code === newCode);
-                      if (stateObj && stateObj.cities.length > 0) {
-                        setCity(stateObj.cities[0]);
-                      }
-                    }}
+                  <input
+                    type="text"
+                    value={stateName}
+                    onChange={(e) => setStateName(e.target.value)}
+                    placeholder="Ej. Ciudad de México, Antioquia, Madrid..."
                     className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:bg-white"
-                  >
-                    {MEXICAN_STATES.map((st) => (
-                      <option key={st.code} value={st.code}>
-                        {st.name}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-800 mb-1">
-                    Municipio o Alcaldía *
+                    Ciudad / Municipio *
                   </label>
-                  <select
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
+                  <input
+                    type="text"
+                    value={cityName}
+                    onChange={(e) => setCityName(e.target.value)}
+                    placeholder="Ej. Guadalajara, Medellín, Barcelona..."
                     className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:bg-white"
-                  >
-                    {selectedStateObj.cities.map((ct) => (
-                      <option key={ct} value={ct}>
-                        {ct}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
               </div>
 
@@ -852,11 +837,38 @@ export const AffiliateOnboardingModal: React.FC<Props> = ({
                 </label>
                 <input
                   type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
+                  value={streetAddress}
+                  onChange={(e) => setStreetAddress(e.target.value)}
                   placeholder="Ej. Calle Florencia 45, Int. 302, Col. Juárez"
                   className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:bg-white"
                 />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1">
+                    Barrio / Colonia (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={neighborhood}
+                    onChange={(e) => setNeighborhood(e.target.value)}
+                    placeholder="Ej. El Poblado, Polanco, Salamanca..."
+                    className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1">
+                    Código Postal (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={postalCode}
+                    onChange={(e) => setPostalCode(e.target.value)}
+                    placeholder="Ej. 06600, 050021..."
+                    className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+                  />
+                </div>
               </div>
 
               {/* WhatsApp Box */}
@@ -872,7 +884,7 @@ export const AffiliateOnboardingModal: React.FC<Props> = ({
                 </p>
                 <div className="flex items-center space-x-2">
                   <span className="bg-white border border-emerald-300 px-3 py-2.5 rounded-xl font-bold text-xs text-slate-700">
-                    🇲🇽 +52
+                    {selectedCountryObj?.flag || '🌎'} {selectedCountryObj?.dialCode || '+1'}
                   </span>
                   <input
                     type="tel"
@@ -881,7 +893,7 @@ export const AffiliateOnboardingModal: React.FC<Props> = ({
                       setPhone(e.target.value);
                       if (stepError) setStepError('');
                     }}
-                    placeholder="10 dígitos (ej. 55 1234 5678)"
+                    placeholder="Número de WhatsApp"
                     className="flex-1 p-2.5 bg-white border border-emerald-300 rounded-xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
@@ -1278,7 +1290,7 @@ export const AffiliateOnboardingModal: React.FC<Props> = ({
                   <div>
                     <h4 className="font-black text-sm text-slate-900">{businessName}</h4>
                     <p className="text-xs text-slate-500">
-                      {specialistName} · {selectedCatObj.label} · {city}, {selectedStateObj.name}
+                      {specialistName} · {selectedCatObj?.label || categoryLabel} · {cityName}, {stateName}
                     </p>
                   </div>
                 </div>
@@ -1375,3 +1387,4 @@ export const AffiliateOnboardingModal: React.FC<Props> = ({
     </div>
   );
 };
+
