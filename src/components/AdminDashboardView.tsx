@@ -287,7 +287,7 @@ export const AdminDashboardView: React.FC<Props> = ({
               <span className="text-[10px] font-black tracking-widest uppercase text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-800/40">
                 Panel Maestro Oficial
               </span>
-              <span className="text-[10px] text-slate-400 hidden sm:inline">CitaPro MX v2.5</span>
+              <span className="text-[10px] text-slate-400 hidden sm:inline">Citas Más v2.5</span>
             </div>
             <h1 className="text-base sm:text-lg font-black text-white flex items-center space-x-2">
               <span>Administración General</span>
@@ -990,7 +990,7 @@ export const AdminDashboardView: React.FC<Props> = ({
               <div className="p-4 border-b border-slate-800 flex items-center justify-between">
                 <h3 className="text-sm font-bold text-white flex items-center space-x-2">
                   <Calendar className="w-4 h-4 text-indigo-400" />
-                  <span>Auditoría de Citas & Anticipos en la Red CitaPro MX ({appointments.length})</span>
+                  <span>Auditoría de Citas & Anticipos en la Red Citas Más ({appointments.length})</span>
                 </h3>
               </div>
 

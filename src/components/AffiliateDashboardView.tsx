@@ -57,7 +57,8 @@ import {
   Receipt,
   Sliders,
   Settings,
-  BarChart3
+  BarChart3,
+  Share2
 } from 'lucide-react';
 import { validateAndDetectClabe, calculatePayoutBreakdown, MEXICAN_BANKS } from '../utils/mexicanBankUtils.ts';
 import { MarketingToolsView } from './MarketingToolsView.tsx';
@@ -2002,7 +2003,7 @@ export const AffiliateDashboardView: React.FC<Props> = ({
                           </div>
                         </div>
                         <p className="text-[11px] text-slate-600 mt-2.5 leading-relaxed pl-7">
-                          Depósito programado cada semana directo a tu cuenta CLABE por SPEI. CitaPro y Stripe absorben el costo ordinario de dispersión bancaria.
+                          Depósito programado cada semana directo a tu cuenta CLABE por SPEI. Citas Más y Stripe absorben el costo ordinario de dispersión bancaria.
                         </p>
                         <div className="mt-2 pl-7 flex items-center space-x-2 text-[10.5px] text-emerald-700 font-semibold">
                           <span>✓ Sin comisiones por retiro</span>
@@ -3107,7 +3108,7 @@ export const AffiliateDashboardView: React.FC<Props> = ({
             </div>
 
             <p className="text-xs text-slate-600">
-              Esta indicación le llegará instantáneamente al WhatsApp del cliente con la plantilla oficial de CitaPro MX.
+              Esta indicación le llegará instantáneamente al WhatsApp del cliente con la plantilla oficial de Citas Más.
             </p>
 
             <textarea

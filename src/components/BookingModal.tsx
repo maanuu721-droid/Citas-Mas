@@ -542,7 +542,7 @@ export const BookingModal: React.FC<Props> = ({
           <div>
             <div className="flex items-center space-x-2">
               <span className="text-[11px] font-semibold tracking-wider text-emerald-400 uppercase bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-800/50">
-                Reserva Segura · CitaPro MX
+                Reserva Segura · Citas Más
               </span>
             </div>
             <h3 className="text-base sm:text-lg font-bold text-white mt-1 leading-tight">
@@ -1059,7 +1059,7 @@ export const BookingModal: React.FC<Props> = ({
               <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-[11px] space-y-1">
                 <span className="font-bold flex items-center space-x-1">
                   <ShieldCheck className="w-3.5 h-3.5 text-amber-700 inline" />
-                  <span>Política de Reagendar y Cancelar CitaPro MX:</span>
+                  <span>Política de Reagendar y Cancelar Citas Más:</span>
                 </span>
                 <ul className="list-disc list-inside space-y-0.5 text-amber-800 text-[10.5px]">
                   <li>Cancelas con más de 24 horas → <strong>Reembolso del 50%</strong> (vía Stripe).</li>

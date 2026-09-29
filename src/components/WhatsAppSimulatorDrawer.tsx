@@ -30,7 +30,7 @@ export const WhatsAppSimulatorDrawer: React.FC<Props> = ({
           </div>
           <div>
             <div className="flex items-center space-x-1.5">
-              <h4 className="font-semibold text-sm leading-none">CitaPro MX Asistente WhatsApp</h4>
+              <h4 className="font-semibold text-sm leading-none">Citas Más Asistente WhatsApp</h4>
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-300 inline" />
             </div>
             <p className="text-[11px] text-emerald-100 mt-0.5">Notificaciones Oficiales WhatsApp</p>

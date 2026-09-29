@@ -100,7 +100,7 @@ export const AffiliateLandingView: React.FC<Props> = ({
             <span className="text-xs text-slate-700 hidden sm:inline">
               Reserva oficial respaldada por
             </span>
-            <span className="font-bold text-xs text-emerald-700">CitaPro MX</span>
+            <span className="font-bold text-xs text-emerald-700">Citas Más</span>
           </div>
         </div>
       </div>
@@ -305,7 +305,7 @@ export const AffiliateLandingView: React.FC<Props> = ({
                   <div className="flex items-center space-x-2">
                     <ShieldCheck className="w-4 h-4 text-emerald-600" />
                     <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
-                      Acreditación Oficial & Verificación CitaPro MX
+                      Acreditación Oficial & Verificación Citas Más
                     </h2>
                   </div>
                   {evalTier.isDestacadoSeguro ? (
@@ -568,7 +568,7 @@ export const AffiliateLandingView: React.FC<Props> = ({
               <div className="bg-slate-900 text-white rounded-2xl p-5 shadow-sm space-y-3">
                 <div className="flex items-center space-x-2 text-emerald-400 font-bold text-xs uppercase tracking-wider">
                   <ShieldCheck className="w-4 h-4" />
-                  <span>Política de Citas CitaPro MX</span>
+                  <span>Política de Citas Citas Más</span>
                 </div>
                 <div className="text-xs text-slate-300 space-y-2 leading-relaxed">
                   <p>

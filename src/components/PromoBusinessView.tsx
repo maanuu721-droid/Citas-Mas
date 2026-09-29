@@ -142,7 +142,7 @@ export const PromoBusinessView: React.FC<Props> = ({
             El Flujo Perfecto
           </span>
           <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
-            ¿Por qué CitaPro MX multiplica tus citas efectivas?
+            ¿Por qué Citas Más multiplica tus citas efectivas?
           </h2>
         </div>
 
@@ -263,7 +263,7 @@ export const PromoBusinessView: React.FC<Props> = ({
             <div className="bg-white/5 p-6 rounded-2xl border border-white/10 space-y-5">
               <div>
                 <span className="text-slate-400 text-xs uppercase tracking-wider block">
-                  Ingreso Mensual Cobrado con CitaPro MX
+                  Ingreso Mensual Cobrado con Citas Más
                 </span>
                 <div className="text-3xl sm:text-4xl font-black text-white mt-1">
                   ${monthlyGross.toLocaleString('es-MX')}{' '}

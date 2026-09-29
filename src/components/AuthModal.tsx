@@ -1099,7 +1099,7 @@ export const AuthModal: React.FC<Props> = ({
                     className="w-full p-2 bg-white border border-amber-300 rounded-lg text-xs font-mono font-bold text-slate-800 placeholder-slate-400 uppercase"
                   />
                   <p className="text-[10px] text-slate-500">
-                    Si un embajador te recomendó CitaPro, ingresa su código para vincularlo a tu registro.
+                    Si un embajador te recomendó Citas Más, ingresa su código para vincularlo a tu registro.
                   </p>
                 </div>
               )}

@@ -163,7 +163,7 @@ export class AuthService {
         const profile: UserProfile = {
           uid: fbUser.uid,
           email: fbUser.email || '',
-          displayName: fbUser.displayName || 'Usuario CitaPro',
+          displayName: fbUser.displayName || 'Usuario Citas Más',
           photoURL: fbUser.photoURL || undefined,
           role: 'client',
           createdAt: new Date().toISOString(),
@@ -689,7 +689,7 @@ export class AuthService {
         const profile: UserProfile = {
           uid,
           email: cleanEmail,
-          displayName: intendedRole === 'promoter' ? 'Promotor Embajador' : (intendedRole === 'affiliate' ? 'Especialista Profesional' : 'Usuario CitaPro'),
+          displayName: intendedRole === 'promoter' ? 'Promotor Embajador' : (intendedRole === 'affiliate' ? 'Especialista Profesional' : 'Usuario Citas Más'),
           phone: '+52 55 1234 5678',
           role: intendedRole,
           affiliateId: intendedRole === 'affiliate' && isDone ? `aff-${uid}` : undefined,
@@ -802,7 +802,7 @@ export class AuthService {
       const newProfile: UserProfile = {
         uid,
         email,
-        displayName: displayName || (email ? email.split('@')[0] : (intendedRole === 'promoter' ? 'Afiliado Promotor' : 'Especialista CitaPro')),
+        displayName: displayName || (email ? email.split('@')[0] : (intendedRole === 'promoter' ? 'Afiliado Promotor' : 'Especialista Citas Más')),
         photoURL,
         role: intendedRole,
         affiliateId: intendedRole === 'affiliate' ? (isDone ? `aff-${uid}` : undefined) : undefined,
@@ -850,7 +850,7 @@ export class AuthService {
         displayName: intendedRole === 'affiliate'
           ? 'Especialista Profesional'
           : intendedRole === 'promoter'
-          ? 'Embajador Promotor CitaPro'
+          ? 'Embajador Promotor Citas Más'
           : 'Carlos Mendoza (Usuario)',
         photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
         role: intendedRole,
@@ -867,7 +867,7 @@ export class AuthService {
           id: `promoter-${uid}`,
           userId: uid,
           referralCode: 'PROMO-NEGOCIOS40',
-          name: 'Embajador Promotor CitaPro',
+          name: 'Embajador Promotor Citas Más',
           email: fallbackGoogleEmail,
           phone: '+52 55 7712 9043',
           commissionPercent: 40,
@@ -877,7 +877,7 @@ export class AuthService {
           totalPaidOutMxn: 3832,
           payoutClabe: '012180004567891234',
           payoutBank: 'BBVA México',
-          payoutHolderName: 'Embajador CitaPro MX',
+          payoutHolderName: 'Embajador Citas Más',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         });

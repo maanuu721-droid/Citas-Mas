@@ -40,6 +40,19 @@ export interface BlockedTimeSlot {
   createdAt: string;
 }
 
+export interface AffiliateAddressDetails {
+  street?: string;
+  number?: string;
+  neighborhood?: string; // Barrio / Colonia / Comuna
+  city?: string;
+  state?: string; // Estado / Provincia / Departamento / Región
+  country?: string; // e.g. "Colombia", "España", "Argentina", "Chile", "México"
+  countryCode?: string; // e.g. "CO", "ES", "AR", "CL", "MX"
+  postalCode?: string;
+  references?: string; // Referencias de llegada o piso/oficina
+  googleMapsUrl?: string;
+}
+
 export interface Affiliate {
   id: string;
   name: string;
@@ -47,9 +60,13 @@ export interface Affiliate {
   category: string;
   categoryLabel: string;
   description: string;
+  country?: string;
+  countryCode?: string;
   state: string;
   city: string;
   address: string;
+  postalCode?: string;
+  addressDetails?: AffiliateAddressDetails;
   lat: number;
   lng: number;
   phone: string;

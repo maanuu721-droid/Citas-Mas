@@ -100,7 +100,7 @@ export const AffiliateApprovalStatusBanner: React.FC<Props> = ({
       fileSize: '1.4 MB',
       issuedBy: inputIssuer.trim() || reqDef?.issuedByExample || 'Autoridad Oficial Competente',
       uploadedAt: new Date().toISOString(),
-      verificationNotes: 'Cotejado y validado en plataforma CitaPro MX.'
+      verificationNotes: 'Cotejado y validado en plataforma Citas Más.'
     };
 
     setIsProcessing(true);
@@ -337,7 +337,7 @@ export const AffiliateApprovalStatusBanner: React.FC<Props> = ({
                     Acreditación y Documentación Oficial
                   </h3>
                   <span className="text-[11px] text-slate-500">
-                    CitaPro MX · Validación de Profesionales
+                    Citas Más · Validación de Profesionales
                   </span>
                 </div>
               </div>

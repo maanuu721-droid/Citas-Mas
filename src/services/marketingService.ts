@@ -76,7 +76,7 @@ export class MarketingService {
       headline: `¿Buscas ${affiliate.categoryLabel || 'Atención Especializada'} en ${city}?`,
       subheadline: `Cuidado profesional diseñado para ${personaName}, sin filas y con horario asegurado.`,
       bodyCopy: `En ${affiliate.businessName || affiliate.name} cuentas con respaldo oficial, confirmación automática por WhatsApp y reservación 100% segura en línea.`,
-      badge: 'Cédula Oficial & Garantía CitaPro MX',
+      badge: 'Cédula Oficial & Garantía Citas Más',
       callToAction: 'Agendar Cita en Línea',
       priceOffer: `Servicios desde $${mainPrice} MXN`
     };
@@ -245,7 +245,7 @@ export class MarketingService {
 
     ctx.fillStyle = '#94a3b8';
     ctx.font = '500 20px sans-serif';
-    ctx.fillText('Reserva oficial verificada en CitaPro MX', 640, footerY + 68);
+    ctx.fillText('Reserva oficial verificada en Citas Más', 640, footerY + 68);
 
     return canvas.toDataURL('image/jpeg', 0.92);
   }
@@ -412,7 +412,7 @@ export class MarketingService {
           'Certeza en resultados y experiencia comprobada'
         ],
         buyingTriggers: [
-          'Cédula y expediente 100% verificado en CitaPro MX',
+          'Cédula y expediente 100% verificado en Citas Más',
           'Recordatorio automático a su WhatsApp',
           'Tarifa clara y fija desde el primer momento'
         ],

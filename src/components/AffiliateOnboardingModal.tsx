@@ -32,8 +32,10 @@ import {
   ExternalLink,
   AlertCircle,
   RefreshCw,
-  X
+  X,
+  Globe
 } from 'lucide-react';
+import { HISPANIC_COUNTRIES, CountryInfo } from '../data/countriesData.ts';
 
 interface Props {
   isOpen: boolean;
@@ -69,11 +71,16 @@ export const AffiliateOnboardingModal: React.FC<Props> = ({
     'Fundada con la vocación de brindar atención profesional de la más alta calidad, con un enfoque ético, personalizado y enfocado en la satisfacción y bienestar de cada uno de nuestros clientes.'
   );
 
-  // Location & Contact
-  const [stateCode, setStateCode] = useState(MEXICAN_STATES[0]?.code || 'CDMX');
-  const [city, setCity] = useState(MEXICAN_STATES[0]?.cities[0] || 'Cuauhtémoc');
-  const [address, setAddress] = useState('Av. Insurgentes Sur 450, Col. Roma Sur');
-  const [phone, setPhone] = useState(user.phone || '55 1234 5678');
+  // Location & Contact (Países de Habla Hispana & Dirección Física Exacta)
+  const [countryCode, setCountryCode] = useState('CO');
+  const [customCountryName, setCustomCountryName] = useState('');
+  const [stateName, setStateName] = useState('Antioquia');
+  const [cityName, setCityName] = useState('Medellín - El Poblado');
+  const [streetAddress, setStreetAddress] = useState('Carrera 43A # 1-50');
+  const [neighborhood, setNeighborhood] = useState('El Poblado');
+  const [postalCode, setPostalCode] = useState('050021');
+  const [addressReferences, setAddressReferences] = useState('Edificio San Fernando Plaza, Torre 2, Consultorio 604');
+  const [phone, setPhone] = useState(user.phone || '310 456 7890');
 
   // Media
   const [logo, setLogo] = useState(
@@ -128,8 +135,24 @@ export const AffiliateOnboardingModal: React.FC<Props> = ({
 
   if (!isOpen) return null;
 
-  // Selected state obj
-  const selectedStateObj = MEXICAN_STATES.find((s) => s.code === stateCode) || MEXICAN_STATES[0];
+  // Selected country obj
+  const selectedCountryObj: CountryInfo =
+    HISPANIC_COUNTRIES.find((c) => c.code === countryCode) || HISPANIC_COUNTRIES[0];
+  const effectiveCountryName = countryCode === 'OTRO' ? (customCountryName.trim() || 'Otro País') : selectedCountryObj.name;
+  const subdivisionLabel = countryCode === 'OTRO' ? 'Estado / Provincia / Departamento' : selectedCountryObj.subdivisionLabel;
+
+  const fullFormattedAddress = React.useMemo(() => {
+    const parts = [
+      streetAddress.trim(),
+      neighborhood.trim() ? `Barrio/Col. ${neighborhood.trim()}` : '',
+      postalCode.trim() ? `CP ${postalCode.trim()}` : '',
+      cityName.trim(),
+      stateName.trim(),
+      effectiveCountryName
+    ].filter(Boolean);
+    return parts.join(', ');
+  }, [streetAddress, neighborhood, postalCode, cityName, stateName, effectiveCountryName]);
+
   const selectedCatObj = SERVICE_CATEGORIES.find((c) => c.id === category) || SERVICE_CATEGORIES[0];
 
   // Tour features
@@ -177,7 +200,7 @@ export const AffiliateOnboardingModal: React.FC<Props> = ({
       title: '4. Pagos Anticipados Garantizados',
       badge: 'Protección Financiera',
       description:
-        'Olvídate de las personas que reservan y no asisten. Todas las citas en CitaPro requieren pago de anticipo o liquidación completa previa.',
+        'Olvídate de las personas que reservan y no asisten. Todas las citas en Citas Más requieren pago de anticipo o liquidación completa previa.',
       icon: DollarSign,
       color: 'text-amber-600 bg-amber-50 border-amber-200',
       details: [
@@ -381,12 +404,25 @@ export const AffiliateOnboardingModal: React.FC<Props> = ({
         categoryLabel: categoryLabel || resolveCategory(category)?.label || selectedCatObj?.label || 'Servicios Profesionales',
         description: story.trim() || `Especialista en ${categoryLabel || resolveCategory(category)?.label || 'Servicios Profesionales'}. Reserva tu cita con anticipación asegurada.`,
         story: story.trim(),
-        state: selectedStateObj.name,
-        city,
-        address: address.trim() || `${city}, ${selectedStateObj.name}`,
-        lat: 19.4326,
-        lng: -99.1332,
-        phone: cleanPhone.substring(0, 30),
+        country: effectiveCountryName,
+        countryCode: countryCode,
+        state: stateName.trim() || 'Principal',
+        city: cityName.trim() || 'Principal',
+        address: fullFormattedAddress || `${cityName}, ${stateName}`,
+        postalCode: postalCode.trim() || undefined,
+        addressDetails: {
+          street: streetAddress.trim(),
+          neighborhood: neighborhood.trim(),
+          city: cityName.trim(),
+          state: stateName.trim(),
+          country: effectiveCountryName,
+          countryCode: countryCode,
+          postalCode: postalCode.trim(),
+          references: addressReferences.trim()
+        },
+        lat: selectedCountryObj?.lat || 4.7110,
+        lng: selectedCountryObj?.lng || -74.0721,
+        phone: `${selectedCountryObj?.dialCode || '+57'} ${phone.trim()}`.substring(0, 30),
         email: activeUser.email || accountEmail.trim(),
         logo,
         banner: gallery[0] || 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1200&q=80',
@@ -533,7 +569,7 @@ export const AffiliateOnboardingModal: React.FC<Props> = ({
                   Configuración Inicial Exclusiva
                 </span>
                 <h2 className="text-lg sm:text-xl font-black text-white">
-                  {currentStep === 1 && '¡Bienvenido a CitaPro! Paseo por tu Plataforma'}
+                  {currentStep === 1 && '¡Bienvenido a Citas Más! Paseo por tu Plataforma'}
                   {currentStep === 2 && 'Datos de tu Compañía e Historia'}
                   {currentStep === 3 && 'Ubicación y WhatsApp de Confirmación'}
                   {currentStep === 4 && 'Logotipo y Fotos de tus Instalaciones'}
@@ -1181,7 +1217,7 @@ export const AffiliateOnboardingModal: React.FC<Props> = ({
                     <span>Aislamiento y Privacidad de Cuenta Garantizados</span>
                   </div>
                   <p className="text-xs text-slate-300 leading-relaxed">
-                    Tu cuenta <strong>{user.email}</strong> es la única con acceso a tu panel de control, configuraciones, clientes y registros financieros. Ningún otro usuario o afiliado de CitaPro puede visualizar ni modificar tus datos.
+                    Tu cuenta <strong>{user.email}</strong> es la única con acceso a tu panel de control, configuraciones, clientes y registros financieros. Ningún otro usuario o afiliado de Citas Más puede visualizar ni modificar tus datos.
                   </p>
                 </div>
               ) : (

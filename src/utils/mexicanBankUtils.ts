@@ -136,7 +136,7 @@ export function calculatePayoutBreakdown(grossAmountMxn: number, schedule: 'week
     commissionFeeMxn: 0,
     grossAmountMxn: safeGross,
     netPayoutMxn: safeGross,
-    description: 'Depósito programado cada semana directo a tu CLABE por SPEI. CitaPro y Stripe absorben la dispersión ordinaria.',
+    description: 'Depósito programado cada semana directo a tu CLABE por SPEI. Citas Más y Stripe absorben la dispersión ordinaria.',
     timelineText: 'Cada Miércoles / Viernes hábil',
     stripeCostCoverage: 'Sin comisiones ocultas ni costos de retiro. Recibes el 100% íntegro de tus ingresos.'
   };

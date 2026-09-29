@@ -140,7 +140,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
 
             <div className="text-center pt-2">
               <span className="text-[10px] text-slate-600 font-mono">
-                CitaPro MX • Área Restringida
+                Citas Más • Área Restringida
               </span>
             </div>
           </div>
@@ -198,7 +198,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
                     {AUTHORIZED_ADMIN_EMAIL}
                   </span>
                   <span className="text-[11px] text-slate-400 block truncate">
-                    Administrador General CitaPro MX
+                    Administrador General Citas Más
                   </span>
                 </div>
               </div>

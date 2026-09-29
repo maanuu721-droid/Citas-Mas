@@ -228,8 +228,8 @@ export const PlanCheckoutModal: React.FC<PlanCheckoutModalProps> = ({
           await StripeService.getInstance().createPaymentIntent({
             amount: totalAmount,
             serviceName: isServiceMode && service
-              ? `Pago Servicio CitaPro MX: ${service.name} (${affiliate?.businessName || affiliate?.name || 'Profesional'})`
-              : `Suscripción CitaPro MX: ${currentPlanDef.name} (${billingCycle})${isTurboActive ? ` + Turbo ${turboLevel} ($${effectiveTurboCost})` : ''}`,
+              ? `Pago Servicio Citas Más: ${service.name} (${affiliate?.businessName || affiliate?.name || 'Profesional'})`
+              : `Suscripción Citas Más: ${currentPlanDef.name} (${billingCycle})${isTurboActive ? ` + Turbo ${turboLevel} ($${effectiveTurboCost})` : ''}`,
             clientEmail: affiliate?.email || 'pago@citapro.mx',
             metadata: {
               type: isServiceMode ? 'service_payment' : 'subscription',
@@ -368,7 +368,7 @@ export const PlanCheckoutModal: React.FC<PlanCheckoutModalProps> = ({
             {isSuccess
               ? 'Tu comprobante oficial de pago ha sido generado y los beneficios han sido activados.'
               : isServiceMode
-              ? `Paga de forma 100% segura el servicio con ${affiliate?.businessName || affiliate?.name || 'el profesional'}. Respaldo con garantía CitaPro MX.`
+              ? `Paga de forma 100% segura el servicio con ${affiliate?.businessName || affiliate?.name || 'el profesional'}. Respaldo con garantía Citas Más.`
               : 'Selecciona tu plan, verifica el importe y activa tu suscripción de inmediato con garantía 100% segura.'}
           </p>
         </div>
@@ -787,7 +787,7 @@ export const PlanCheckoutModal: React.FC<PlanCheckoutModalProps> = ({
 
                         <div className="flex items-center justify-between">
                           <span className="text-slate-500">Beneficiario:</span>
-                          <span className="font-bold text-slate-900">CitaPro MX SAPI de CV</span>
+                          <span className="font-bold text-slate-900">Citas Más SAPI de CV</span>
                         </div>
 
                         <div className="flex items-center justify-between pt-1 border-t border-slate-100">

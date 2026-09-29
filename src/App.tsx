@@ -124,7 +124,7 @@ export default function App() {
       id: 'demo-msg-welcome',
       type: 'confirmation',
       title: 'Sistema de Notificaciones Activo',
-      content: '*CitaPro MX* | Bienvenido a la red de citas profesionales. Cada reserva genera mensajes automáticos de confirmación, recordatorios 24h y 2h antes.',
+      content: '*Citas Más* | Bienvenido a la red de citas profesionales. Cada reserva genera mensajes automáticos de confirmación, recordatorios 24h y 2h antes.',
       sentAt: '09:00',
       status: 'delivered',
       twilioSid: 'SM8492048102948201948201'
@@ -363,12 +363,11 @@ export default function App() {
             <div>
               <div className="flex items-center space-x-1.5">
                 <span className="text-lg font-black tracking-tight text-slate-900 leading-none">
-                  CitaPro <span className="text-emerald-600">MX</span>
+                  Citas <span className="text-emerald-600">Más</span>
                 </span>
-                <span className="text-xs">🇲🇽</span>
               </div>
               <span className="text-[10px] text-slate-600 font-medium tracking-wide">
-                Citas con cobro anticipado & WhatsApp
+                Citas con cobro anticipado, IA & WhatsApp · España, Colombia, Argentina, Chile, México y más
               </span>
             </div>
           </div>
@@ -1196,10 +1195,10 @@ export default function App() {
           <div className="space-y-2">
             <div className="flex items-center space-x-2 text-white font-black text-sm">
               <Calendar className="w-4 h-4 text-emerald-400" />
-              <span>CitaPro MX</span>
+              <span>Citas Más</span>
             </div>
             <p className="text-slate-400 text-[11px] leading-relaxed">
-              Plataforma web de citas para servicios profesionales en México (psicólogos, terapeutas, barberos, dentistas, masajistas).
+              Plataforma web de citas para servicios profesionales en países de habla hispana (España, Colombia, Argentina, Chile, México y más con dirección exacta y WhatsApp).
             </p>
             <div className="text-[11px] text-emerald-400 font-medium">
               Infraestructura en la nube con alta disponibilidad.
@@ -1219,7 +1218,7 @@ export default function App() {
           <div className="space-y-1.5">
             <h4 className="text-white font-bold text-xs uppercase tracking-wider">Planes para Afiliados</h4>
             <ul className="space-y-1 text-[11px] text-slate-400">
-              <li>• Plan Básico: $179 MXN/mes</li>
+              <li>• Plan Básico: $179 MXN/mes (o equivalente)</li>
               <li>• Plan Pro (14 días gratis): $359 MXN/mes</li>
               <li>• Plan Equipo: $869 MXN/mes</li>
               <li>• Add-on Turbo: $1,500 MXN/mes</li>
@@ -1231,14 +1230,14 @@ export default function App() {
             <ul className="space-y-1 text-[11px] text-slate-400">
               <li>• Sincronización en tiempo real</li>
               <li>• Notificaciones WhatsApp Automáticas</li>
-              <li>• Pasarela Stripe México & SPEI</li>
-              <li>• Geolocalización por estados de México</li>
+              <li>• Pasarela Stripe & Pagos Seguros</li>
+              <li>• Búsqueda por países y dirección física exacta</li>
             </ul>
           </div>
         </div>
 
         <div className="max-w-7xl mx-auto pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 gap-2">
-          <span>© 2026 CitaPro MX. Todos los derechos reservados. Hecho para profesionales en México.</span>
+          <span>© 2026 Citas Más. Todos los derechos reservados. Red internacional para profesionales en países de habla hispana.</span>
           <div className="flex items-center space-x-3">
             <button onClick={() => setActiveView('promo')} className="hover:text-white transition-colors">
               Planes

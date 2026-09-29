@@ -146,7 +146,7 @@ export const PromoterDashboardView: React.FC<Props> = ({
 
   // WhatsApp Share helper
   const handleShareWhatsApp = () => {
-    const text = `¡Hola! Te recomiendo CitaPro MX para tu consultorio o clínica. Es la plataforma en México que elimina las faltas a citas con cobro 100% anticipado con tarjeta o SPEI y recordatorios automáticos por WhatsApp. Regístrate con mi enlace de embajador para activar tu cuenta:\n${referralUrl}`;
+    const text = `¡Hola! Te recomiendo Citas Más para tu consultorio o clínica. Es la plataforma en México que elimina las faltas a citas con cobro 100% anticipado con tarjeta o SPEI y recordatorios automáticos por WhatsApp. Regístrate con mi enlace de embajador para activar tu cuenta:\n${referralUrl}`;
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };
@@ -753,12 +753,12 @@ export const PromoterDashboardView: React.FC<Props> = ({
               <span>1. Mensaje para WhatsApp Directo</span>
             </div>
             <p className="text-slate-300 text-[11px] leading-relaxed italic">
-              "Hola Dr./Lic., te comparto CitaPro MX: la plataforma que elimina las faltas a citas con cobro 100% anticipado por tarjeta o SPEI y confirmaciones por WhatsApp. Te ahorra hasta el 30% de dinero perdido por inasistencias. Regístrate aquí con mi código {effectiveCode}: {referralUrl}"
+              "Hola Dr./Lic., te comparto Citas Más: la plataforma que elimina las faltas a citas con cobro 100% anticipado por tarjeta o SPEI y confirmaciones por WhatsApp. Te ahorra hasta el 30% de dinero perdido por inasistencias. Regístrate aquí con mi código {effectiveCode}: {referralUrl}"
             </p>
             <button
               onClick={() => {
                 navigator.clipboard.writeText(
-                  `Hola Dr./Lic., te comparto CitaPro MX: la plataforma que elimina las faltas a citas con cobro 100% anticipado por tarjeta o SPEI y confirmaciones por WhatsApp. Te ahorra hasta el 30% de dinero perdido por inasistencias. Regístrate aquí con mi código ${effectiveCode}: ${referralUrl}`
+                  `Hola Dr./Lic., te comparto Citas Más: la plataforma que elimina las faltas a citas con cobro 100% anticipado por tarjeta o SPEI y confirmaciones por WhatsApp. Te ahorra hasta el 30% de dinero perdido por inasistencias. Regístrate aquí con mi código ${effectiveCode}: ${referralUrl}`
                 );
                 alert('¡Mensaje copiado al portapapeles!');
               }}
@@ -774,12 +774,12 @@ export const PromoterDashboardView: React.FC<Props> = ({
               <span>2. Mensaje para Clínicas y Consultorios</span>
             </div>
             <p className="text-slate-300 text-[11px] leading-relaxed italic">
-              "Estimada clínica, CitaPro MX les entrega una landing page personalizada con agenda, catálogo de servicios y cobro garantizado de anticipo para proteger los horarios de sus especialistas. Conoce los planes y pruébalo aquí: {referralUrl}"
+              "Estimada clínica, Citas Más les entrega una landing page personalizada con agenda, catálogo de servicios y cobro garantizado de anticipo para proteger los horarios de sus especialistas. Conoce los planes y pruébalo aquí: {referralUrl}"
             </p>
             <button
               onClick={() => {
                 navigator.clipboard.writeText(
-                  `Estimada clínica, CitaPro MX les entrega una landing page personalizada con agenda, catálogo de servicios y cobro garantizado de anticipo para proteger los horarios de sus especialistas. Conoce los planes y pruébalo aquí: ${referralUrl}`
+                  `Estimada clínica, Citas Más les entrega una landing page personalizada con agenda, catálogo de servicios y cobro garantizado de anticipo para proteger los horarios de sus especialistas. Conoce los planes y pruébalo aquí: ${referralUrl}`
                 );
                 alert('¡Mensaje copiado al portapapeles!');
               }}
@@ -805,7 +805,7 @@ export const PromoterDashboardView: React.FC<Props> = ({
               </li>
               <li className="flex items-start space-x-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                <span><strong>Tu 40% mensual:</strong> Mientras el profesional use CitaPro, recibes tu comisión mes con mes.</span>
+                <span><strong>Tu 40% mensual:</strong> Mientras el profesional use Citas Más, recibes tu comisión mes con mes.</span>
               </li>
             </ul>
           </div>

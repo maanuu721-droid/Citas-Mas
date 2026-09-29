@@ -88,9 +88,9 @@ export const MarketingToolsView: React.FC<Props> = ({
   );
   const [campaignCopy, setCampaignCopy] = useState({
     headline: `¿Buscas ${affiliate.categoryLabel || 'Atención Especializada'} en ${affiliate.city || 'tu ciudad'}?`,
-    subheadline: 'Atención puntual y garantizada, sin filas y con respaldo oficial de CitaPro MX.',
+    subheadline: 'Atención puntual y garantizada, sin filas y con respaldo oficial de Citas Más.',
     bodyCopy: `En ${affiliate.businessName || affiliate.name} cuentas con expediente verificado y confirmación directa por WhatsApp.`,
-    badge: 'Cédula Oficial & Garantía CitaPro MX',
+    badge: 'Cédula Oficial & Garantía Citas Más',
     callToAction: 'Agendar Cita en Línea',
     priceOffer: `Servicios desde $${affiliate.services?.[0]?.price || 500} MXN`
   });
@@ -109,7 +109,7 @@ export const MarketingToolsView: React.FC<Props> = ({
     title: `Spot Radial / Redes para ${affiliate.businessName || affiliate.name}`,
     hook: `¿Cansado de esperar horas para una consulta de ${affiliate.categoryLabel || 'calidad'}?`,
     body: `Descubre ${affiliate.businessName || affiliate.name} en ${affiliate.city}. Agenda tu cita en 30 segundos, recibe confirmación inmediata a tu WhatsApp y disfruta de atención puntual garantizada.`,
-    cta: 'Haz clic en el enlace y aparta tu horario hoy mismo en CitaPro MX.',
+    cta: 'Haz clic en el enlace y aparta tu horario hoy mismo en Citas Más.',
     audioSampleTime: '0:22 seg'
   });
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -224,7 +224,7 @@ export const MarketingToolsView: React.FC<Props> = ({
       targetWhatsAppPhone: affiliate.phone || '+52 55 1234 5678',
       includeInfographic: true,
       autoSendActive: true,
-      sampleExecutiveSummary: `📊 *Reporte Ejecutivo Semanal CitaPro MX (Lunes)*\n\n¡Hola ${affiliate.businessName || affiliate.name}! Aquí tienes tu balance de marketing:\n\n✅ *14 Citas concretadas*\n👥 *2 Nuevos clientes recurrentes*\n🎬 *Tus videos promocionales alcanzaron 1.2k vistas*\n💬 *18 Conversaciones iniciadas por WhatsApp*\n📈 *Tasa de conversión real: 27.0%*\n💰 *Ingresos estimados generados: $19,200 MXN*\n\n¡Excelente semana y a seguir creciendo!`
+      sampleExecutiveSummary: `📊 *Reporte Ejecutivo Semanal Citas Más (Lunes)*\n\n¡Hola ${affiliate.businessName || affiliate.name}! Aquí tienes tu balance de marketing:\n\n✅ *14 Citas concretadas*\n👥 *2 Nuevos clientes recurrentes*\n🎬 *Tus videos promocionales alcanzaron 1.2k vistas*\n💬 *18 Conversaciones iniciadas por WhatsApp*\n📈 *Tasa de conversión real: 27.0%*\n💰 *Ingresos estimados generados: $19,200 MXN*\n\n¡Excelente semana y a seguir creciendo!`
     }
   );
 
@@ -559,7 +559,7 @@ export const MarketingToolsView: React.FC<Props> = ({
 
   const handleShareReferralWhatsApp = () => {
     const text = encodeURIComponent(
-      `¡Hola! Te recomiendo atenderte con ${affiliate.businessName || affiliate.name} en CitaPro MX. Usa mi enlace de referido para obtener un ${referralSettings.clientRewardDiscountPercent}% de descuento directo en tu primera cita: ${referralSettings.referralLink}`
+      `¡Hola! Te recomiendo atenderte con ${affiliate.businessName || affiliate.name} en Citas Más. Usa mi enlace de referido para obtener un ${referralSettings.clientRewardDiscountPercent}% de descuento directo en tu primera cita: ${referralSettings.referralLink}`
     );
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
@@ -1079,7 +1079,7 @@ export const MarketingToolsView: React.FC<Props> = ({
                   <div>
                     <h2 className="text-base font-bold text-white">Configuración del Anuncio 2D</h2>
                     <p className="text-xs text-slate-400">
-                      Adaptado para redes sociales y tu Landing Page de CitaPro MX.
+                      Adaptado para redes sociales y tu Landing Page de Citas Más.
                     </p>
                   </div>
                   <button
@@ -1506,7 +1506,7 @@ export const MarketingToolsView: React.FC<Props> = ({
                         {proScript.cta}
                       </span>
                       <span className="text-[9px] text-slate-400 block mt-0.5">
-                        Agendamiento 24/7 en CitaPro MX
+                        Agendamiento 24/7 en Citas Más
                       </span>
                     </div>
                   </div>
@@ -1713,7 +1713,7 @@ export const MarketingToolsView: React.FC<Props> = ({
                   },
                   {
                     num: '04',
-                    title: 'Cierre & Llamado CitaPro MX',
+                    title: 'Cierre & Llamado Citas Más',
                     desc: 'Cita reservada en 30 seg con confirmación por WhatsApp y garantía oficial de puntualidad.',
                     tone: 'Logotipo en pantalla, llamado a la acción claro'
                   }
@@ -2132,7 +2132,7 @@ export const MarketingToolsView: React.FC<Props> = ({
                   <div className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 space-y-1">
                     <span className="text-emerald-300 font-bold block">🌟 Recompensa para ti (Afiliado):</span>
                     <p className="text-slate-300">
-                      <strong>{referralSettings.affiliateBonusDaysPreferred} días de visibilidad preferente</strong> destacada en el directorio CitaPro MX.
+                      <strong>{referralSettings.affiliateBonusDaysPreferred} días de visibilidad preferente</strong> destacada en el directorio Citas Más.
                     </p>
                   </div>
 
@@ -2512,7 +2512,7 @@ export const MarketingToolsView: React.FC<Props> = ({
 
                   <div>
                     <div className="flex justify-between text-slate-300 mb-1">
-                      <span className="font-semibold">Búsqueda Directa en Directorio CitaPro MX</span>
+                      <span className="font-semibold">Búsqueda Directa en Directorio Citas Más</span>
                       <span className="font-mono text-amber-400">{marketingAnalytics.channelBreakdown.directDirectory}%</span>
                     </div>
                     <div className="w-full bg-slate-900 rounded-full h-2.5 overflow-hidden">
@@ -2667,11 +2667,11 @@ export const MarketingToolsView: React.FC<Props> = ({
                   <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
                     <div className="flex items-center space-x-2">
                       <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">
-                        CP
+                        CM
                       </div>
                       <div>
                         <span className="text-xs font-bold text-white block">
-                          CitaPro MX Bot (n8n)
+                          Citas Más Bot (n8n)
                         </span>
                         <span className="text-[10px] text-emerald-400">Cuenta Comercial Oficial</span>
                       </div>

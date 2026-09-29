@@ -149,7 +149,7 @@ export const ManageAppointmentView: React.FC<Props> = ({
     const refund = isMoreThan24Hours ? Math.round(searchedAppointment.paidAmount * 0.5) : 0;
     const confirmText = isMoreThan24Hours
       ? `¿Confirmas que deseas cancelar tu cita? Al hacerlo con más de 24h de anticipación (${hoursRemaining}h restantes), recibirás un reembolso del 50% ($${refund} MXN).`
-      : `Atención: Faltan ${Math.max(0, hoursRemaining)}h para tu cita (menos de 24 horas). De acuerdo a la política de CitaPro MX no aplica reembolso (0%). ¿Deseas cancelar de todos modos?`;
+      : `Atención: Faltan ${Math.max(0, hoursRemaining)}h para tu cita (menos de 24 horas). De acuerdo a la política de Citas Más no aplica reembolso (0%). ¿Deseas cancelar de todos modos?`;
 
     if (!window.confirm(confirmText)) return;
 
@@ -364,7 +364,7 @@ export const ManageAppointmentView: React.FC<Props> = ({
             >
               <div className="flex items-center space-x-2 font-bold">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span>Diagnóstico de Política CitaPro MX para tu Cita:</span>
+                <span>Diagnóstico de Política Citas Más para tu Cita:</span>
               </div>
 
               {isMoreThan24Hours ? (
@@ -495,7 +495,7 @@ export const ManageAppointmentView: React.FC<Props> = ({
         /* Explanatory Policy Card */
         <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-4">
           <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-            Política Oficial de Reagendar y Cancelar CitaPro MX
+            Política Oficial de Reagendar y Cancelar Citas Más
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-700">
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
