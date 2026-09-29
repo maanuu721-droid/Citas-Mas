@@ -1,0 +1,90 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if isValidId(userId) &&
+        request.resource.data.keys().hasAll(['uid', 'email', 'displayName', 'role']) &&
+        request.resource.data.email is string &&
+        request.resource.data.displayName is string;
+      allow update: if isValidId(userId) && (
+        !isSignedIn() || request.auth.uid == userId || request.resource.data.diff(resource.data).affectedKeys().hasAny(['approvalStatus', 'professionalDocument', 'updatedAt', 'phone', 'displayName', 'photoURL'])
+      );
+      allow delete: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Public directory of affiliates
+    match /affiliates/{affiliateId} {
+      allow read: if true;
+      allow create: if isValidId(affiliateId) && 
+        request.resource.data.keys().hasAll(['id', 'name', 'businessName', 'category', 'state', 'city', 'phone', 'plan']) &&
+        request.resource.data.name is string && request.resource.data.name.size() <= 120 &&
+        request.resource.data.phone is string && request.resource.data.phone.size() <= 30;
+      allow update: if isValidId(affiliateId) && (
+        !isSignedIn() || 
+        request.auth.uid == resource.data.ownerId || 
+        request.auth.uid == affiliateId ||
+        (request.auth.token.email != null && resource.data.ownerEmail != null && request.auth.token.email == resource.data.ownerEmail) ||
+        resource.data.ownerId == null ||
+        request.resource.data.diff(resource.data).affectedKeys().hasAny(['rating', 'reviewCount', 'completedAppointments', 'availableToday', 'availableTomorrow', 'updatedAt', 'businessName', 'name', 'services', 'story', 'description', 'phone', 'logo', 'banner', 'gallery', 'address', 'city', 'state', 'hasCompletedOnboarding'])
+      );
+      allow delete: if isSignedIn() && (request.auth.uid == resource.data.ownerId || (request.auth.token.email != null && resource.data.ownerEmail != null && request.auth.token.email == resource.data.ownerEmail));
+    }
+
+    // Appointments collection
+    match /appointments/{appointmentId} {
+      allow read: if true;
+      allow create: if isValidId(appointmentId) &&
+        request.resource.data.keys().hasAll(['id', 'affiliateId', 'serviceName', 'servicePrice', 'clientName', 'clientPhone', 'date', 'time', 'status']) &&
+        request.resource.data.clientName is string && request.resource.data.clientName.size() <= 120 &&
+        request.resource.data.clientPhone is string && request.resource.data.clientPhone.size() <= 30 &&
+        request.resource.data.servicePrice is number && request.resource.data.servicePrice >= 0;
+      allow update: if isValidId(appointmentId) && (
+        request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'notes', 'internalNotes', 'rescheduleCount', 'date', 'time', 'paymentStatus', 'refundAmount', 'whatsappMessages', 'updatedAt'])
+      );
+      allow delete: if isSignedIn();
+    }
+
+    // Reviews collection
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isValidId(reviewId) &&
+        request.resource.data.keys().hasAll(['id', 'affiliateId', 'appointmentId', 'clientName', 'rating', 'comment']) &&
+        request.resource.data.rating is number && request.resource.data.rating >= 1 && request.resource.data.rating <= 5 &&
+        request.resource.data.comment is string && request.resource.data.comment.size() <= 1000;
+      allow update: if false;
+      allow delete: if isSignedIn();
+    }
+
+    // Promoters collection
+    match /promoters/{promoterId} {
+      allow read: if true;
+      allow create, update: if isValidId(promoterId);
+      allow delete: if isSignedIn();
+    }
+
+    // Referrals collection (40% monthly recurring commissions)
+    match /referrals/{referralId} {
+      allow read: if true;
+      allow create, update: if isValidId(referralId);
+      allow delete: if isSignedIn();
+    }
+  }
+}
