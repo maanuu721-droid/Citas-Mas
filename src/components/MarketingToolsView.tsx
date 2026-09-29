@@ -114,7 +114,7 @@ export const MarketingToolsView: React.FC<Props> = ({
   });
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [n8nWebhookUrl, setN8nWebhookUrl] = useState(
-    'https://n8n.webhook.citapro.mx/webhook/marketing-video-pro'
+    'https://n8n.bahiago.tech/webhook/marketing-video-pro'
   );
   const [n8nStatusPro, setN8nStatusPro] = useState<string>('');
   const [isDispatchingPro, setIsDispatchingPro] = useState(false);
@@ -140,7 +140,7 @@ export const MarketingToolsView: React.FC<Props> = ({
   const [referralSettings, setReferralSettings] = useState<ReferralGamificationSettings>(
     affiliate.referralSettings || {
       affiliateReferralCode: cleanAffiliateCode,
-      referralLink: `https://citapro.mx/ref/${cleanAffiliateCode}`,
+      referralLink: `https://citasmas.com/ref/${cleanAffiliateCode}`,
       clientRewardDiscountPercent: 15,
       affiliateBonusDaysPreferred: 7,
       totalReferralsTracked: 8,
@@ -187,7 +187,7 @@ export const MarketingToolsView: React.FC<Props> = ({
     affiliate.reEngagementSettings || {
       inactiveDaysThreshold: 60,
       aiFlashOfferDiscountPercent: 20,
-      aiFlashOfferMessage: `¡Te extrañamos en ${affiliate.businessName || affiliate.name}! 🌟 Hemos notado que han pasado más de 60 días desde tu última visita. Diseñamos para ti una OFERTA FLASH del 20% de descuento en tu próxima cita, válida durante las próximas 48 horas: https://citapro.mx/promo/flash-${cleanAffiliateCode}`,
+      aiFlashOfferMessage: `¡Te extrañamos en ${affiliate.businessName || affiliate.name}! 🌟 Hemos notado que han pasado más de 60 días desde tu última visita. Diseñamos para ti una OFERTA FLASH del 20% de descuento en tu próxima cita, válida durante las próximas 48 horas: https://citasmas.com/promo/flash-${cleanAffiliateCode}`,
       validHoursOffer: 48,
       isActiveAutoDispatch: true,
       totalReEngagedClients: 14
@@ -333,7 +333,7 @@ export const MarketingToolsView: React.FC<Props> = ({
     if (!generated2DImageUrl) return;
     const a = document.createElement('a');
     a.href = generated2DImageUrl;
-    a.download = `anuncio-2d-${affiliate.businessName || 'citapro'}.jpg`;
+    a.download = `anuncio-2d-${affiliate.businessName || 'citasmas'}.jpg`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -2043,7 +2043,7 @@ export const MarketingToolsView: React.FC<Props> = ({
                       onClick={() => {
                         const sampleMsg = postAppointmentSettings.followupMaintenanceMessage
                           .replace('{{cliente}}', 'María')
-                          .replace('{{enlace_reagendar}}', `https://citapro.mx/p/${affiliate.id}`);
+                          .replace('{{enlace_reagendar}}', `https://citasmas.com/p/${affiliate.id}`);
                         window.open(`https://wa.me/?text=${encodeURIComponent(sampleMsg)}`, '_blank');
                       }}
                       className="text-xs text-teal-400 hover:text-teal-300 font-bold flex items-center space-x-1 cursor-pointer"
@@ -2287,7 +2287,7 @@ export const MarketingToolsView: React.FC<Props> = ({
                       <button
                         type="button"
                         onClick={() => {
-                          const newMsg = `¡Hola! Hace más de ${reEngagementSettings.inactiveDaysThreshold} días no te vemos en ${affiliate.businessName || affiliate.name}. ⚡ Preparamos para ti una OFERTA FLASH del ${reEngagementSettings.aiFlashOfferDiscountPercent}% de descuento en tu servicio preferido, válida únicamente por las próximas 48 horas. Aparta tu cita con descuento aquí: https://citapro.mx/flash-${cleanAffiliateCode}`;
+                          const newMsg = `¡Hola! Hace más de ${reEngagementSettings.inactiveDaysThreshold} días no te vemos en ${affiliate.businessName || affiliate.name}. ⚡ Preparamos para ti una OFERTA FLASH del ${reEngagementSettings.aiFlashOfferDiscountPercent}% de descuento en tu servicio preferido, válida únicamente por las próximas 48 horas. Aparta tu cita con descuento aquí: https://citasmas.com/flash-${cleanAffiliateCode}`;
                           setReEngagementSettings({
                             ...reEngagementSettings,
                             aiFlashOfferMessage: newMsg
@@ -2722,3 +2722,4 @@ export const MarketingToolsView: React.FC<Props> = ({
     </div>
   );
 };
+
