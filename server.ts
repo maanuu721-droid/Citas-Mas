@@ -56,7 +56,7 @@ async function startServer() {
 
       if (gemini) {
         const prompt = `Actúa como Director Experto de Marketing para negocios locales y servicios profesionales en México.
-Analiza este negocio afiliado en CitaPro MX:
+Analiza este negocio afiliado en Citas Más MX:
 - Nombre Comercial: ${affiliate.businessName || affiliate.name}
 - Categoría: ${affiliate.categoryLabel || affiliate.category}
 - Ubicación: ${affiliate.address}, ${affiliate.city}, ${affiliate.state}
@@ -184,7 +184,7 @@ Genera un JSON estricto con:
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          source: 'citapro_marketing_tools',
+          source: 'Citas Más_marketing_tools',
           dispatchedAt: new Date().toISOString(),
           ...payload
         })
@@ -295,7 +295,7 @@ Genera un JSON estricto con:
             price_data: {
               currency: 'mxn',
               product_data: {
-                name: `${serviceName} - ${affiliateName || 'CitaPro MX'}`,
+                name: `${serviceName} - ${affiliateName || 'Citas Más MX'}`,
                 description: `Anticipo de cita para ${clientName || 'Cliente'} el ${date || ''} a las ${time || ''} hrs.`,
               },
               unit_amount: unitAmountCents,
@@ -342,7 +342,7 @@ Genera un JSON estricto con:
       const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(Number(amount) * 100),
         currency: 'mxn',
-        description: `CitaPro MX: ${serviceName || 'Servicio Profesional'}`,
+        description: `Citas Más MX: ${serviceName || 'Servicio Profesional'}`,
         receipt_email: clientEmail && clientEmail.includes('@') ? clientEmail : undefined,
         metadata: metadata || {},
         automatic_payment_methods: {
@@ -462,7 +462,7 @@ Genera un JSON estricto con:
             price_data: {
               currency: 'mxn',
               product_data: {
-                name: `CitaPro MX: Membresía Plan ${planName || planId}`,
+                name: `Citas Más MX: Membresía Plan ${planName || planId}`,
                 description: `Suscripción mensual recurrente para gestión de citas y marketing digital`,
               },
               unit_amount: Math.round(Number(priceMxn) * 100),
@@ -619,7 +619,7 @@ Genera un JSON estricto con:
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`CitaPro MX Server running on port ${PORT}`);
+    console.log(`Citas Más MX Server running on port ${PORT}`);
   });
 }
 
@@ -651,7 +651,7 @@ function generateContextualBuyerPersonas(affiliate: any) {
         buyingTriggers: [
           'Confirmación inmediata con recordatorio directo a su WhatsApp',
           'Cobro 100% anticipado que garantiza cero retrasos y privacidad',
-          'Cédula profesional y expediente verificado en CitaPro MX'
+          'Cédula profesional y expediente verificado en Citas Más MX'
         ],
         summaryHook: 'Recupera tu balance emocional con atención profesional y citas puntuales sin esperas.'
       },
@@ -796,3 +796,5 @@ function generateContextualCampaignContent(affiliate: any, targetPersona: any) {
 }
 
 startServer();
+
+
