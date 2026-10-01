@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Sparkles, Users, Image as ImageIcon, Video, Film,
-  RefreshCw, MessageSquare, TrendingUp, Award, FileText, X, ArrowLeft
+  RefreshCw, MessageSquare, TrendingUp, Award, FileText, X, ArrowLeft, Zap
 } from 'lucide-react';
 import { Affiliate, BuyerPersona } from '../types';
 import { N8nWebhookService, MarketingToolType } from '../services/n8nWebhookService';
