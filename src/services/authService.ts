@@ -539,18 +539,24 @@ export class AuthService {
         let profile = userSnap.data() as UserProfile;
         
         // If the user explicitly chose to log in as affiliate or client or promoter, adjust role
+        // NOTE: We do NOT override affiliateId with a hardcoded demo value.
+        // Each affiliate has their own profile linked by uid.
         if (intendedRole === 'affiliate' && profile.role !== 'affiliate') {
+          // Only elevate to affiliate if the user truly intends to — do NOT inject a demo affiliateId
+          const ownAffiliateId = profile.affiliateId || undefined; // keep their own or leave undefined until onboarding
           profile = {
             ...profile,
             role: 'affiliate',
-            affiliateId: profile.affiliateId || 'aff-psico-bienestar',
+            affiliateId: ownAffiliateId,
             approvalStatus: profile.approvalStatus || 'approved',
+            hasCompletedOnboarding: profile.hasCompletedOnboarding || false,
             updatedAt: new Date().toISOString()
           };
           await updateDoc(doc(db, 'users', uid), {
             role: 'affiliate',
-            affiliateId: profile.affiliateId,
+            affiliateId: profile.affiliateId || null,
             approvalStatus: profile.approvalStatus,
+            hasCompletedOnboarding: profile.hasCompletedOnboarding,
             updatedAt: profile.updatedAt
           });
         } else if (intendedRole === 'promoter' && profile.role !== 'promoter') {
@@ -596,14 +602,16 @@ export class AuthService {
         this.setCurrentUser(profile);
         return profile;
       } else {
-        // Create user profile if first time
+        // Create user profile if first time — do NOT assign demo affiliateId
+        // affiliateId will be assigned when the affiliate completes onboarding
         const profile: UserProfile = {
           uid,
           email: cleanEmail,
           displayName: userCred.user.displayName || cleanEmail.split('@')[0],
           role: intendedRole,
-          affiliateId: intendedRole === 'affiliate' ? 'aff-psico-bienestar' : undefined,
+          affiliateId: undefined, // Will be set after onboarding is completed
           approvalStatus: intendedRole === 'affiliate' ? 'approved' : undefined,
+          hasCompletedOnboarding: false,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
@@ -836,55 +844,24 @@ export class AuthService {
       this.setCurrentUser(newProfile);
       return newProfile;
     } catch (popupErr: any) {
-      console.warn('Google Popup blocked or unavailable in iframe environment, activating seamless Google fallback:', popupErr);
+      // Determine the real error type
+      const code = popupErr?.code || '';
 
-      // Graceful fallback for iframe sandbox
-      const fallbackGoogleEmail = 'negocios7online@gmail.com';
-      const uid = `google-uid-${fallbackGoogleEmail.replace(/[^a-zA-Z0-9]/g, '')}`;
-      const isDone = localStorage.getItem(`citapro_onboarding_done_${uid}`) === 'true';
-      const promoCode = intendedRole === 'promoter' ? 'PROMO-NEGOCIOS40' : undefined;
-
-      const fallbackProfile: UserProfile = {
-        uid,
-        email: fallbackGoogleEmail,
-        displayName: intendedRole === 'affiliate'
-          ? 'Especialista Profesional'
-          : intendedRole === 'promoter'
-          ? 'Embajador Promotor Citas Más'
-          : 'Carlos Mendoza (Usuario)',
-        photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-        role: intendedRole,
-        affiliateId: isDone ? `aff-${uid}` : undefined,
-        approvalStatus: intendedRole === 'affiliate' ? 'approved' : undefined,
-        hasCompletedOnboarding: isDone,
-        promoterCode: promoCode,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-
-      if (intendedRole === 'promoter') {
-        await DataService.getInstance().savePromoterProfile({
-          id: `promoter-${uid}`,
-          userId: uid,
-          referralCode: 'PROMO-NEGOCIOS40',
-          name: 'Embajador Promotor Citas Más',
-          email: fallbackGoogleEmail,
-          phone: '+52 55 7712 9043',
-          commissionPercent: 40,
-          totalEarningsMxn: 7664,
-          currentMonthEarningsMxn: 1174.4,
-          availableBalanceMxn: 3832,
-          totalPaidOutMxn: 3832,
-          payoutClabe: '012180004567891234',
-          payoutBank: 'BBVA México',
-          payoutHolderName: 'Embajador Citas Más',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        });
+      // popup-in-iframe / blocked by browser — user-actionable error, show clear message
+      if (
+        code === 'auth/popup-blocked' ||
+        code === 'auth/popup-closed-by-user' ||
+        code === 'auth/cancelled-popup-request'
+      ) {
+        throw new Error(
+          'El navegador bloqueó la ventana de Google. Por favor permite ventanas emergentes para este sitio e intenta de nuevo.'
+        );
       }
 
-      this.setCurrentUser(fallbackProfile);
-      return fallbackProfile;
+      // Any other real Firebase auth error — propagate with a readable message
+      const msg = popupErr?.message || 'Error al autenticar con Google. Intenta de nuevo.';
+      console.error('Google Sign-In error:', code, msg);
+      throw new Error(msg);
     }
   }
 
