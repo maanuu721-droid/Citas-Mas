@@ -139,8 +139,16 @@ export default function App() {
   useEffect(() => {
     const unsub = AuthService.getInstance().subscribe(async (user) => {
       setCurrentUser(user);
+
+      // IMPORTANT: Always clear the affiliate panel immediately when auth state changes.
+      // This prevents stale data from a previous session or a different account from
+      // remaining visible while the new user's affiliate data is being loaded.
+      setCurrentAffiliateUser(null);
+
       if (user?.role === 'affiliate') {
         const allAffiliates = await DataService.getInstance().getAffiliates();
+        // Strictly match by ownerId (uid) first — most reliable unique identifier.
+        // Fall back to ownerEmail only as secondary signal, affiliateId as tertiary.
         const myAff = allAffiliates.find(
           (a) =>
             a.ownerId === user.uid ||
@@ -150,9 +158,8 @@ export default function App() {
 
         if (myAff) {
           setCurrentAffiliateUser(myAff);
-        } else {
-          setCurrentAffiliateUser(null);
         }
+        // If no affiliate found, currentAffiliateUser stays null → onboarding will open
 
         // Trigger Onboarding ONLY the first time with this account
         const isDoneLocally = localStorage.getItem(`citapro_onboarding_done_${user.uid}`) === 'true';
@@ -163,7 +170,7 @@ export default function App() {
           setIsAffiliateOnboardingOpen(false);
         }
       } else if (!user) {
-        setCurrentAffiliateUser(null);
+        // Logout — already cleared above, nothing more needed
       }
     });
     return () => unsub();
@@ -197,13 +204,15 @@ export default function App() {
 
       const loggedUser = AuthService.getInstance().getCurrentUser();
       if (loggedUser?.role === 'affiliate') {
+        // Strictly match by uid (ownerId) first — never show another user's data
         const myAff = list.find(
           (a) =>
             a.ownerId === loggedUser.uid ||
             (loggedUser.email && a.ownerEmail?.toLowerCase() === loggedUser.email.toLowerCase()) ||
             (loggedUser.affiliateId && a.id === loggedUser.affiliateId)
         );
-        if (myAff) {
+        // Only set if the matched affiliate belongs to the currently authenticated uid
+        if (myAff && (myAff.ownerId === loggedUser.uid || myAff.ownerEmail?.toLowerCase() === loggedUser.email?.toLowerCase())) {
           setCurrentAffiliateUser(myAff);
         }
       }
