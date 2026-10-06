@@ -31,11 +31,14 @@ import {
   Award,
   LogOut,
   Lock,
-  Package
+  Package,
+  Trash2,
+  User
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
   Affiliate,
+  UserProfile,
   Appointment,
   MarketingCampaignRequest,
   SubscriptionPlanType,
@@ -52,7 +55,7 @@ interface Props {
   onLogoutAdmin?: () => void;
 }
 
-type AdminTab = 'marketing_requests' | 'subscriptions' | 'affiliates' | 'appointments' | 'promotion_orders' | 'settings';
+type AdminTab = 'marketing_requests' | 'subscriptions' | 'affiliates' | 'users' | 'appointments' | 'promotion_orders' | 'settings';
 
 export const AdminDashboardView: React.FC<Props> = ({
   onBackToApp,
@@ -66,6 +69,7 @@ export const AdminDashboardView: React.FC<Props> = ({
   // Core data states
   const [marketingRequests, setMarketingRequests] = useState<MarketingCampaignRequest[]>([]);
   const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [pendingAffiliates, setPendingAffiliates] = useState<Affiliate[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [expiringSubscriptions, setExpiringSubscriptions] = useState<any[]>([]);
@@ -98,16 +102,18 @@ export const AdminDashboardView: React.FC<Props> = ({
     try {
       setLoading(true);
       const dataService = DataService.getInstance();
-      const [mkt, affs, apts, exp, met] = await Promise.all([
+      const [mkt, affs, apts, exp, met, usrList] = await Promise.all([
         dataService.getMarketingRequests(),
         dataService.getAffiliates(),
         dataService.getAppointments(),
         dataService.getExpiringSubscriptions(7),
-        dataService.getAdminMetrics()
+        dataService.getAdminMetrics(),
+        dataService.getAllUsers()
       ]);
 
       setMarketingRequests(mkt);
       setAffiliates(affs);
+      setUsers(usrList);
       setAppointments(apts);
       setExpiringSubscriptions(exp);
       setMetrics(met);
@@ -270,6 +276,49 @@ export const AdminDashboardView: React.FC<Props> = ({
       await loadDashboardData();
     } catch (err) {
       showToast('Error al actualizar verificación', 'error');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // 6. Delete affiliate account permanently
+  const handleDeleteAffiliate = async (affiliateId: string, name: string) => {
+    if (!window.confirm(`¿Estás completamente seguro de ELIMINAR permanentemente la cuenta del afiliado "${name}"?\nEsta acción no se puede deshacer y borrará su perfil del sistema.`)) {
+      return;
+    }
+    setActionLoadingId(affiliateId);
+    try {
+      const ok = await DataService.getInstance().deleteAffiliate(affiliateId);
+      if (ok) {
+        setAffiliates(prev => prev.filter(a => a.id !== affiliateId));
+        setMetrics(prev => ({ ...prev, totalAffiliates: Math.max(0, prev.totalAffiliates - 1) }));
+        showToast(`Afiliado "${name}" eliminado permanentemente`, 'success');
+      } else {
+        showToast('Error al eliminar afiliado', 'error');
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'Error al eliminar afiliado', 'error');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // 7. Delete user/client account permanently
+  const handleDeleteUser = async (userId: string, emailOrName: string) => {
+    if (!window.confirm(`¿Estás seguro de ELIMINAR permanentemente la cuenta de usuario "${emailOrName}"?\nSe borrarán sus accesos del sistema.`)) {
+      return;
+    }
+    setActionLoadingId(userId);
+    try {
+      const ok = await DataService.getInstance().deleteUser(userId);
+      if (ok) {
+        setUsers(prev => prev.filter(u => u.uid !== userId));
+        showToast(`Usuario "${emailOrName}" eliminado con éxito`, 'success');
+      } else {
+        showToast('Error al eliminar usuario', 'error');
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'Error al eliminar usuario', 'error');
     } finally {
       setActionLoadingId(null);
     }
@@ -559,6 +608,24 @@ export const AdminDashboardView: React.FC<Props> = ({
             {pendingAffiliates.length > 0 && (
               <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full animate-pulse">
                 {pendingAffiliates.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('users')}
+            className={`px-4 py-3 text-xs sm:text-sm font-bold flex items-center space-x-2 border-b-2 transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'users'
+                ? 'border-cyan-400 text-cyan-400 bg-slate-900/40'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <User className="w-4 h-4" />
+            <span>Usuarios & Clientes</span>
+            {users.length > 0 && (
+              <span className="bg-slate-800 text-slate-300 text-[10px] font-bold px-1.5 py-0.2 rounded-full">
+                {users.length}
               </span>
             )}
           </button>
@@ -1137,10 +1204,86 @@ export const AdminDashboardView: React.FC<Props> = ({
                           Ver Perfil
                         </button>
                       )}
+
+                      <button
+                        type="button"
+                        disabled={actionLoadingId === aff.id}
+                        onClick={() => handleDeleteAffiliate(aff.id, aff.businessName || aff.name)}
+                        className="bg-rose-950/80 hover:bg-rose-900 border border-rose-800 text-rose-300 hover:text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center space-x-1 transition-all cursor-pointer"
+                        title="Eliminar permanentemente este afiliado"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Eliminar</span>
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ====================================================================
+            TAB 3.5: USERS & CLIENTS MANAGEMENT
+            ==================================================================== */}
+        {activeTab === 'users' && (
+          <div className="space-y-6">
+            <div className="bg-slate-900/80 rounded-3xl border border-slate-800 overflow-hidden">
+              <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+                <h3 className="text-sm font-bold text-white flex items-center space-x-2">
+                  <User className="w-4 h-4 text-cyan-400" />
+                  <span>Listado Maestro de Usuarios & Clientes ({users.length})</span>
+                </h3>
+              </div>
+
+              {users.length === 0 ? (
+                <div className="p-12 text-center text-slate-500 text-xs">
+                  No hay cuentas de usuario registradas o sincronizadas en el sistema.
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-800/70">
+                  {users.map((usr) => (
+                    <div key={usr.uid} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <h4 className="text-sm font-bold text-white">{usr.displayName || 'Usuario'}</h4>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                              usr.role === 'admin'
+                                ? 'bg-purple-950 text-purple-300 border border-purple-700'
+                                : usr.role === 'promoter'
+                                ? 'bg-amber-950 text-amber-300 border border-amber-700'
+                                : usr.role === 'affiliate'
+                                ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
+                                : 'bg-blue-950 text-blue-300 border border-blue-700'
+                            }`}
+                          >
+                            {usr.role === 'client' ? 'Cliente / Usuario Final' : usr.role}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-3 text-xs text-slate-400">
+                          <span>Email: <strong className="text-slate-200">{usr.email}</strong></span>
+                          {usr.phone && <span>Tel: {usr.phone}</span>}
+                          {usr.createdAt && <span>Registrado: {new Date(usr.createdAt).toLocaleDateString('es-MX')}</span>}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-2 shrink-0">
+                        <button
+                          type="button"
+                          disabled={actionLoadingId === usr.uid}
+                          onClick={() => handleDeleteUser(usr.uid, usr.email || usr.displayName)}
+                          className="bg-rose-950/80 hover:bg-rose-900 border border-rose-800 text-rose-300 hover:text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center space-x-1 transition-all cursor-pointer"
+                          title="Eliminar permanentemente este usuario"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Eliminar Cuenta</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

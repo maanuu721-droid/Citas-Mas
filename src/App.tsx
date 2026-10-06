@@ -1170,6 +1170,7 @@ export default function App() {
       {isAffiliateOnboardingOpen && (
         <AffiliateOnboardingModal
           isOpen={isAffiliateOnboardingOpen}
+          affiliate={currentAffiliateUser}
           user={
             currentUser
               ? { ...currentUser, role: 'affiliate' }

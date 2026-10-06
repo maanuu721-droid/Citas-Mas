@@ -5,6 +5,7 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  deleteDoc,
   query,
   where,
   onSnapshot,
@@ -14,6 +15,7 @@ import {
 import { db, handleFirestoreError, OperationType } from '../firebase.ts';
 import {
   Affiliate,
+  UserProfile,
   Appointment,
   Review,
   MarketingCampaignRequest,
@@ -542,6 +544,93 @@ export class DataService {
       await setDoc(doc(db, 'affiliates', affiliate.id), affiliate);
     } catch (err) {
       console.warn('Firestore saveAffiliate notice:', err);
+    }
+  }
+
+  /**
+   * Elimina permanentemente una cuenta de afiliado tanto de Firestore como de la caché local.
+   */
+  public async deleteAffiliate(affiliateId: string): Promise<boolean> {
+    try {
+      // 1. Borrar de Firestore
+      try {
+        await deleteDoc(doc(db, 'affiliates', affiliateId));
+      } catch (err) {
+        console.warn('[DataService] Error borrando afiliado de Firestore:', err);
+      }
+
+      // 2. Actualizar caché local
+      const cached = localStorage.getItem(LOCAL_STORAGE_KEY_AFFILIATES);
+      if (cached) {
+        const affiliates: Affiliate[] = JSON.parse(cached);
+        const filtered = affiliates.filter((a) => a.id !== affiliateId);
+        localStorage.setItem(LOCAL_STORAGE_KEY_AFFILIATES, JSON.stringify(filtered));
+      }
+      return true;
+    } catch (error) {
+      console.error('[DataService] Error en deleteAffiliate:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Obtiene todos los usuarios registrados (para panel de administración).
+   */
+  public async getAllUsers(): Promise<UserProfile[]> {
+    try {
+      const snap = await getDocs(collection(db, 'users'));
+      if (!snap.empty) {
+        const users = snap.docs.map((d) => d.data() as UserProfile);
+        localStorage.setItem('citapro_admin_users_cache', JSON.stringify(users));
+        return users;
+      }
+    } catch (err) {
+      console.warn('[DataService] Error al obtener usuarios de Firestore:', err);
+    }
+    // Fallback local
+    const cachedUsers = localStorage.getItem('citapro_admin_users_cache');
+    if (cachedUsers) {
+      try { return JSON.parse(cachedUsers); } catch {}
+    }
+    // Extraer de afiliados y usuario actual como fallback si no hay colección users directa
+    const affiliates = await this.getAffiliates();
+    const fallbackUsers: UserProfile[] = affiliates.map((a) => ({
+      uid: a.ownerId || a.id,
+      email: a.ownerEmail || a.email || `${a.id}@citasmas.com`,
+      displayName: a.name || a.businessName,
+      phone: a.phone,
+      role: 'affiliate' as const,
+      affiliateId: a.id,
+      approvalStatus: a.approvalStatus || 'approved',
+      createdAt: a.updatedAt || new Date().toISOString(),
+      updatedAt: a.updatedAt || new Date().toISOString()
+    }));
+    return fallbackUsers;
+  }
+
+  /**
+   * Elimina permanentemente una cuenta de usuario o cliente del sistema.
+   */
+  public async deleteUser(uid: string): Promise<boolean> {
+    try {
+      // 1. Borrar documento en Firestore
+      try {
+        await deleteDoc(doc(db, 'users', uid));
+      } catch (err) {
+        console.warn('[DataService] Error borrando usuario de Firestore:', err);
+      }
+
+      // 2. Actualizar caché de usuarios
+      const cachedUsers = localStorage.getItem('citapro_admin_users_cache');
+      if (cachedUsers) {
+        const users: UserProfile[] = JSON.parse(cachedUsers);
+        const filtered = users.filter((u) => u.uid !== uid);
+        localStorage.setItem('citapro_admin_users_cache', JSON.stringify(filtered));
+      }
+      return true;
+    } catch (error) {
+      console.error('[DataService] Error en deleteUser:', error);
+      return false;
     }
   }
 

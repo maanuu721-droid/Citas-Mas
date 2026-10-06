@@ -45,6 +45,22 @@ interface PlanDefinition {
 
 const PLANS_CONFIG: PlanDefinition[] = [
   {
+    id: 'prueba',
+    name: 'Plan de Prueba',
+    monthlyPrice: 10,
+    annualMonthlyPrice: 10,
+    description: 'Plan de evaluación por $10 MXN al mes para explorar la plataforma, catálogo y herramientas.',
+    badge: 'Prueba $10 MXN',
+    features: [
+      '1 Mes completo de acceso a la plataforma por solo $10 MXN',
+      'Página web pública (Landing Page) activa en CitasMás',
+      'Catálogo completo de servicios con cobro anticipado',
+      'Confirmaciones y recordatorios por WhatsApp',
+      'Prueba de herramientas de marketing asistidas por IA',
+      'Sin plazo forzoso, cancela en cualquier momento'
+    ]
+  },
+  {
     id: 'basico',
     name: 'Plan Básico',
     monthlyPrice: 179,
@@ -476,7 +492,7 @@ export const PlanCheckoutModal: React.FC<PlanCheckoutModalProps> = ({
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
                     {PLANS_CONFIG.filter((p) => p.id !== 'turbo').map((p) => {
                       const isSelected = selectedPlanId === p.id;
                       const price =

@@ -1,4 +1,4 @@
-export type SubscriptionPlanType = 'basico' | 'pro' | 'equipo' | 'comision';
+export type SubscriptionPlanType = 'basico' | 'pro' | 'equipo' | 'comision' | 'prueba';
 
 export interface ServiceItem {
   id: string;

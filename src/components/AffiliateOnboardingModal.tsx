@@ -40,6 +40,7 @@ import { HISPANIC_COUNTRIES, CountryInfo } from '../data/countriesData.ts';
 interface Props {
   isOpen: boolean;
   user: UserProfile;
+  affiliate?: Affiliate | null;
   onComplete: (affiliate: Affiliate, updatedUser: UserProfile) => void;
   onClose?: () => void;
 }
@@ -47,6 +48,7 @@ interface Props {
 export const AffiliateOnboardingModal: React.FC<Props> = ({
   isOpen,
   user,
+  affiliate,
   onComplete,
   onClose
 }) => {
@@ -121,17 +123,34 @@ export const AffiliateOnboardingModal: React.FC<Props> = ({
   const [stepError, setStepError] = useState<string>('');
 
   React.useEffect(() => {
-    if (isOpen && user) {
-      if (user.email) setAccountEmail(user.email);
-      if (user.displayName) {
-        setSpecialistName(user.displayName);
-        if (businessName === 'Mi Negocio Profesional' || !businessName) {
-          setBusinessName(user.displayName);
+    if (isOpen) {
+      if (affiliate) {
+        if (affiliate.businessName) setBusinessName(affiliate.businessName);
+        if (affiliate.name) setSpecialistName(affiliate.name);
+        if (affiliate.category) setCategory(affiliate.category);
+        if (affiliate.categoryLabel) setCategoryLabel(affiliate.categoryLabel);
+        if (affiliate.story) setStory(affiliate.story);
+        if (affiliate.countryCode) setCountryCode(affiliate.countryCode);
+        if (affiliate.state) setStateName(affiliate.state);
+        if (affiliate.city) setCityName(affiliate.city);
+        if (affiliate.address) setStreetAddress(affiliate.address);
+        if (affiliate.phone) setPhone(affiliate.phone);
+        if (affiliate.logo) setLogo(affiliate.logo);
+        if (affiliate.gallery && affiliate.gallery.length > 0) setGallery(affiliate.gallery);
+        if (affiliate.services && affiliate.services.length > 0) setServices(affiliate.services);
+        if (affiliate.email) setAccountEmail(affiliate.email);
+      } else if (user) {
+        if (user.email) setAccountEmail(user.email);
+        if (user.displayName) {
+          setSpecialistName(user.displayName);
+          if (businessName === 'Mi Negocio Profesional' || !businessName) {
+            setBusinessName(user.displayName);
+          }
         }
+        if (user.phone) setPhone(user.phone);
       }
-      if (user.phone) setPhone(user.phone);
     }
-  }, [isOpen, user]);
+  }, [isOpen, user, affiliate]);
 
   if (!isOpen) return null;
 

@@ -577,7 +577,14 @@ export const AffiliateDashboardView: React.FC<Props> = ({
           <button
             type="button"
             id="affiliate-quick-config-btn"
-            onClick={() => setActiveTab('landing_customizer')}
+            onClick={() => {
+              setActiveTab('landing_customizer');
+              setSaveSuccessMsg('Modo de configuración de empresa activo. Edita los datos de tu negocio a continuación.');
+              setTimeout(() => {
+                const el = document.getElementById('save-affiliate-top-btn') || document.getElementById('affiliate-dashboard-category');
+                el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }, 120);
+            }}
             className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all cursor-pointer border ${
               activeTab === 'landing_customizer'
                 ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
