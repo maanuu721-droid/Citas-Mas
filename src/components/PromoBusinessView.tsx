@@ -78,6 +78,17 @@ export const PromoBusinessView: React.FC<Props> = ({
             <span>La Plataforma #1 de Citas Profesionales en México</span>
           </div>
 
+          {/* Plan de Prueba highlight badge */}
+          <div
+            className="inline-flex items-center space-x-3 bg-amber-400/10 border border-amber-400/40 px-5 py-3 rounded-2xl cursor-pointer hover:bg-amber-400/20 transition-colors"
+            onClick={() => handleSelectAndOpenPayment('prueba')}
+          >
+            <span className="bg-amber-400 text-slate-950 text-xs font-black px-2.5 py-1 rounded-xl">NUEVA OFERTA</span>
+            <span className="text-white font-bold text-sm">Plan de Prueba por solo</span>
+            <span className="text-amber-400 font-black text-xl">$10 MXN/mes</span>
+            <ArrowRight className="w-4 h-4 text-amber-400" />
+          </div>
+
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight max-w-4xl mx-auto leading-tight">
             Elimina los <span className="text-emerald-400">no-shows</span> para siempre con{' '}
             <span className="underline decoration-emerald-500 decoration-wavy">pago anticipado</span> y WhatsApp automático
@@ -333,7 +344,81 @@ export const PromoBusinessView: React.FC<Props> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          {/* Plan de Prueba */}
+          <div
+            onClick={() => handleSelectAndOpenPayment('prueba')}
+            className={`rounded-3xl p-6 transition-all flex flex-col justify-between space-y-4 cursor-pointer relative ${
+              selectedPlan === 'prueba'
+                ? 'border-2 border-emerald-500 bg-emerald-50/20 shadow-xl ring-2 ring-emerald-400/30'
+                : 'bg-white border border-slate-200 hover:border-emerald-300 shadow-xs'
+            }`}
+          >
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-slate-950 text-[10px] font-black px-3 py-0.5 rounded-full uppercase tracking-wider flex items-center space-x-1 shadow-sm border border-amber-300">
+              <Sparkles className="w-3 h-3" />
+              <span>Prueba $10 MXN</span>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-slate-900 text-base">Plan de Prueba</h3>
+                {selectedPlan === 'prueba' && (
+                  <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">
+                    ✓
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-3">
+                <span className="text-3xl font-black text-slate-900">
+                  $10
+                </span>
+                <span className="text-xs text-slate-500"> MXN/m</span>
+              </div>
+              <p className="text-xs text-slate-600 mt-2">Prueba accesible para explorar toda la plataforma.</p>
+
+              <ul className="mt-6 space-y-2.5 text-xs text-slate-700">
+                <li className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Acceso completo por 1 mes</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Landing Page y catálogo activo</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Confirmaciones por WhatsApp</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Prueba de herramientas IA</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Cancela cuando quieras</span>
+                </li>
+              </ul>
+            </div>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSelectAndOpenPayment('prueba');
+              }}
+              className={`w-full py-2.5 rounded-xl font-black text-xs transition-all shadow-sm cursor-pointer ${
+                selectedPlan === 'prueba'
+                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                  : 'bg-amber-400 hover:bg-amber-300 text-slate-950'
+              }`}
+            >
+              {selectedPlan === 'prueba'
+                ? 'Pagar Plan de Prueba ($10 MXN)'
+                : 'Probar por $10 MXN'}
+            </button>
+          </div>
+
           {/* Básico */}
           <div
             onClick={() => handleSelectAndOpenPayment('basico')}

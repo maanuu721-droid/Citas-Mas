@@ -975,6 +975,7 @@ export default function App() {
                 affiliates={affiliates}
                 onSelectAffiliate={handleSelectAffiliate}
                 onOpenBookingForAffiliate={handleOpenBooking}
+                onOpenPromo={() => setActiveView('promo')}
               />
             )}
 

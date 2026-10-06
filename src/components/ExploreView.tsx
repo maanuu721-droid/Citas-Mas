@@ -41,12 +41,14 @@ interface Props {
   affiliates: Affiliate[];
   onSelectAffiliate: (affiliate: Affiliate) => void;
   onOpenBookingForAffiliate: (affiliate: Affiliate) => void;
+  onOpenPromo?: () => void;
 }
 
 export const ExploreView: React.FC<Props> = ({
   affiliates,
   onSelectAffiliate,
-  onOpenBookingForAffiliate
+  onOpenBookingForAffiliate,
+  onOpenPromo
 }) => {
   // Filters state
   const [searchTerm, setSearchTerm] = useState('');
@@ -354,6 +356,39 @@ export const ExploreView: React.FC<Props> = ({
           </p>
         )}
       </div>
+
+      {/* ── BANNER: Plan de Prueba $10 MXN para profesionales ── */}
+      {onOpenPromo && (
+        <button
+          type="button"
+          id="explore-plan-prueba-banner"
+          onClick={onOpenPromo}
+          className="w-full flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-amber-400 via-amber-300 to-emerald-400 rounded-3xl px-6 py-5 shadow-lg border border-amber-300 hover:shadow-xl hover:scale-[1.01] transition-all cursor-pointer group"
+        >
+          <div className="flex items-center space-x-4 text-left">
+            <div className="w-12 h-12 rounded-2xl bg-slate-950/20 flex items-center justify-center shrink-0">
+              <Sparkles className="w-6 h-6 text-slate-950" />
+            </div>
+            <div>
+              <div className="flex items-center flex-wrap gap-x-2 gap-y-1">
+                <span className="text-slate-950 font-black text-base sm:text-lg leading-tight">
+                  ¿Eres profesional? Prueba CitasMás por solo
+                </span>
+                <span className="bg-slate-950 text-amber-400 font-black text-lg px-3 py-0.5 rounded-xl shadow-sm">
+                  $10 MXN/mes
+                </span>
+              </div>
+              <p className="text-slate-800 text-xs sm:text-sm font-medium mt-0.5">
+                Landing Page activa · Cobro anticipado · Marketing con IA · Cancela cuando quieras
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 bg-slate-950 text-white font-black text-sm px-5 py-3 rounded-2xl shadow-md group-hover:bg-slate-800 transition-colors shrink-0">
+            <span>Ver planes y comenzar</span>
+            <ArrowRight className="w-4 h-4" />
+          </div>
+        </button>
+      )}
 
       {/* Selector de País - Países de Habla Hispana */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs space-y-2.5">
