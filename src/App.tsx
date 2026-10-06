@@ -555,14 +555,21 @@ export default function App() {
                     setActiveView('promo');
                     setSelectedAffiliate(null);
                   }}
-                  className={`px-3.5 py-2 rounded-xl transition-all flex items-center space-x-1.5 ${
+                  className={`px-3.5 py-1.5 rounded-xl transition-all flex items-center space-x-2 border cursor-pointer ${
                     activeView === 'promo'
-                      ? 'bg-emerald-50 text-emerald-800 font-extrabold'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      ? 'bg-emerald-50 text-emerald-950 border-emerald-300 font-black shadow-xs'
+                      : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200/90 hover:border-amber-400 shadow-2xs'
                   }`}
+                  title="Conoce los planes y el Plan de Prueba por $10 MXN mensuales"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Para Profesionales (Promo)</span>
+                  <div className="flex items-center space-x-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
+                    <span className="font-bold text-xs">Para Profesionales (Promo)</span>
+                  </div>
+                  <span className="bg-gradient-to-r from-amber-400 via-amber-300 to-emerald-400 text-slate-950 font-black text-[10px] px-2 py-0.5 rounded-full shadow-xs uppercase tracking-wider flex items-center space-x-1 border border-amber-300/80">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                    <span>Prueba $10 MXN</span>
+                  </span>
                 </button>
 
                 <button
@@ -937,10 +944,19 @@ export default function App() {
                     setSelectedAffiliate(null);
                     setIsMobileMenuOpen(false);
                   }}
-                  className="w-full text-left py-2 px-3 rounded-lg text-slate-700 hover:bg-slate-50 flex items-center space-x-2"
+                  className={`w-full text-left py-2.5 px-3 rounded-xl flex items-center justify-between border cursor-pointer transition-all ${
+                    activeView === 'promo'
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-black'
+                      : 'border-slate-100 hover:bg-slate-50 text-slate-800'
+                  }`}
                 >
-                  <Sparkles className="w-4 h-4 text-amber-500" />
-                  <span>Para Profesionales (Promo & Planes)</span>
+                  <div className="flex items-center space-x-2">
+                    <Sparkles className="w-4 h-4 text-amber-500 fill-amber-400" />
+                    <span className="font-bold text-xs sm:text-sm">Para Profesionales (Promo & Planes)</span>
+                  </div>
+                  <span className="bg-gradient-to-r from-amber-400 via-amber-300 to-emerald-400 text-slate-950 font-black text-[10px] px-2 py-0.5 rounded-full shadow-xs border border-amber-300/80 shrink-0">
+                    Prueba $10 MXN
+                  </span>
                 </button>
 
                 <button
