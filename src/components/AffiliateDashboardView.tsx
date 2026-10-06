@@ -2869,6 +2869,22 @@ export const AffiliateDashboardView: React.FC<Props> = ({
         </div>
       )}
 
+      {/* TAB 7: MARKETING TOOLS (AI 5 LEVELS) */}
+      {activeTab === 'marketing' && (
+        <div className="space-y-6">
+          <MarketingToolsView
+            affiliate={formData}
+            initialTab={marketingInitialSubTab}
+            onUpdateAffiliate={(updated) => {
+              setFormData(updated);
+              onUpdateAffiliate(updated);
+            }}
+            onNavigateToLanding={() => onPreviewLanding(formData)}
+            onClose={() => setActiveTab('calendar')}
+          />
+        </div>
+      )}
+
       {/* Payout Withdrawal Modal */}
       {isPayoutModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
