@@ -111,16 +111,17 @@ const PLANS_CONFIG: PlanDefinition[] = [
   },
   {
     id: 'turbo',
-    name: 'Add-on Turbo Redes Sociales',
-    monthlyPrice: 200,
-    annualMonthlyPrice: 200,
-    description: 'Impulso turbo en redes sociales con 3 niveles de potencia según tu presupuesto.',
-    badge: 'Máximo Alcance',
+    name: '📣 Paquetes de Exposición en Redes',
+    monthlyPrice: 300,
+    annualMonthlyPrice: 300,
+    description: 'Maximiza el alcance de los videos y materiales generados con IA en redes sociales. Elige el paquete que se adapte a tu objetivo de crecimiento.',
+    badge: 'Exposición Redes',
     features: [
-      'Turbo 1 (+ $200 MXN): Impulso express en redes sociales',
-      'Turbo 2 (+ $700 MXN): Impulso medio con alcance geolocalizado en redes',
-      'Turbo 3 (+ $1,500 MXN): Máxima exposición masiva y posición #1 con insignia dorada',
-      'Campaña geolocalizada a clientes a menos de 5 km'
+      '📦 Paquete 1 — $300 MXN: Maximiza la exposición básica de tus videos en redes sociales en tu zona local',
+      '📦 Paquete 2 — $600 MXN: Maximiza la exposición con mayor frecuencia, alcance geolocalizado y audiencias ampliadas',
+      '📦 Paquete 3 — $1,500 MXN: Máxima exposición intensiva y prioritaria + posición destacada en el directorio CitasMás',
+      '📊 Panel de Analítica: Alcance, reproducciones, clics y citas obtenidas de la campaña',
+      '🎯 Segmentación por zona, categoría profesional y perfil de cliente ideal',
     ]
   }
 ];
