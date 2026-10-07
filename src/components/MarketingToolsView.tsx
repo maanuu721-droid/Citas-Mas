@@ -1,269 +1,753 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Sparkles, Users, Image as ImageIcon, Video, Film,
-  RefreshCw, MessageSquare, TrendingUp, Award, FileText, X, ArrowLeft, Zap
+  MessageSquare, ArrowLeft, Zap, Download, Globe,
+  CheckCircle2, Clock, RefreshCw, Plus, Play,
+  Star, Upload, X, AlertCircle, ChevronRight
 } from 'lucide-react';
-import { Affiliate, BuyerPersona } from '../types';
-import { N8nWebhookService, MarketingToolType } from '../services/n8nWebhookService';
+import { Affiliate, MarketingAsset, MarketingLevelType, KieAiModel } from '../types';
+import { DataService } from '../services/dataService';
 import confetti from 'canvas-confetti';
+
+// ─────────────────────────────────────────
+// N8N WEBHOOK — sends requests to n8n which
+// calls DeepSeek + Kie.ai and returns to Firestore
+// ─────────────────────────────────────────
+const N8N_WEBHOOK_URL = 'https://n8n.bahiago.tech/webhook/marketing-citas-mas';
 
 interface Props {
   affiliate: Affiliate;
   onUpdateAffiliate: (updated: Affiliate) => void;
   onClose?: () => void;
-  initialTab?: string;
-  onNavigateToLanding?: () => void;
 }
 
-interface ToolDefinition {
-  id: MarketingToolType;
+// ─── LEVEL DEFINITIONS ─────────────────────────────────────────────────────
+interface LevelDefinition {
+  level: MarketingLevelType;
   title: string;
+  subtitle: string;
   description: string;
+  badge: string;
+  badgeColor: string;
   icon: React.ReactNode;
-  cost: number; // 0 means free/included
-  color: string;
+  gradient: string;
+  borderColor: string;
+  kieModel?: KieAiModel;
+  isFree: boolean;
+  hasReferencePhoto: boolean;
 }
 
-const MARKETING_TOOLS: ToolDefinition[] = [
+const MARKETING_LEVELS: LevelDefinition[] = [
   {
-    id: 'audience_discovery',
-    title: 'Descubre tu Público Objetivo',
-    description: 'Nuestra IA analiza tu negocio y define 3 perfiles de clientes ideales hiper-específicos.',
-    icon: <Users className="w-6 h-6 text-blue-500" />,
-    cost: 0,
-    color: 'bg-blue-50 border-blue-100 hover:border-blue-300'
+    level: 1,
+    title: 'Público Objetivo',
+    subtitle: 'Clientes Potenciales de tu Zona',
+    description: 'La IA analiza tu negocio, servicios y ubicación para identificar y entregarte los 3 perfiles de clientes ideales en tu zona. Incluido en todos los planes.',
+    badge: 'Incluido',
+    badgeColor: 'bg-emerald-100 text-emerald-700',
+    icon: <Users className="w-7 h-7" />,
+    gradient: 'from-blue-500 to-cyan-400',
+    borderColor: 'border-blue-200',
+    isFree: true,
+    hasReferencePhoto: false,
   },
   {
-    id: 'campaign_2d',
-    title: 'Campaña 2D Standard',
-    description: 'Genera un flyer publicitario optimizado con copy persuasivo.',
-    icon: <ImageIcon className="w-6 h-6 text-purple-500" />,
-    cost: 0,
-    color: 'bg-purple-50 border-purple-100 hover:border-purple-300'
+    level: 2,
+    title: 'Flyer Publicitario de Marca',
+    subtitle: 'Imagen tipo flyer con identidad visual',
+    description: 'DeepSeek analiza tu negocio y redacta el copy perfecto. Kie.ai genera con Grok Image 2 un flyer profesional con la identidad de tu marca. Puedes usar fotos de referencia de tu negocio.',
+    badge: 'IA Visual',
+    badgeColor: 'bg-purple-100 text-purple-700',
+    icon: <ImageIcon className="w-7 h-7" />,
+    gradient: 'from-purple-500 to-pink-400',
+    borderColor: 'border-purple-200',
+    kieModel: 'grok-image-2',
+    isFree: true,
+    hasReferencePhoto: true,
   },
   {
-    id: 'video_pro',
-    title: 'Spot Radial / Video Pro',
-    description: 'Video animado con locución de Inteligencia Artificial.',
-    icon: <Video className="w-6 h-6 text-orange-500" />,
-    cost: 550,
-    color: 'bg-orange-50 border-orange-100 hover:border-orange-300'
+    level: 3,
+    title: 'Spot de Audio y Video Animado',
+    subtitle: 'Video con locución IA y música',
+    description: 'Usa el flyer del Nivel 2 como base. DeepSeek escribe el guión del spot (".Agenda en CitasMás"). Kie.ai anima la imagen con Grok Video 1.5 y agrega locución de IA y música masterizada.',
+    badge: 'Video Animado',
+    badgeColor: 'bg-orange-100 text-orange-700',
+    icon: <Video className="w-7 h-7" />,
+    gradient: 'from-orange-500 to-amber-400',
+    borderColor: 'border-orange-200',
+    kieModel: 'grok-video-1.5',
+    isFree: true,
+    hasReferencePhoto: true,
   },
   {
-    id: 'video_premium',
-    title: 'Producción Cinema 4K',
-    description: 'Video de alta gama con estética cinematográfica.',
-    icon: <Film className="w-6 h-6 text-rose-500" />,
-    cost: 1250,
-    color: 'bg-rose-50 border-rose-100 hover:border-rose-300'
+    level: 4,
+    title: 'Video Cinematográfico — 1 Minuto',
+    subtitle: 'Producción cinemática de alto impacto',
+    description: 'Video cinematográfico de 1 minuto con estructura de alta conversión: Detección del dolor (0-15s) → Tu solución (15-35s) → Cómo funciona CitasMás (35-50s) → Llamado a la acción (50-60s). Incluye 1 video GRATIS cada 2 meses.',
+    badge: '1 GRATIS c/2 meses',
+    badgeColor: 'bg-rose-100 text-rose-700',
+    icon: <Film className="w-7 h-7" />,
+    gradient: 'from-rose-600 to-pink-500',
+    borderColor: 'border-rose-200',
+    kieModel: 'grok-image-to-video',
+    isFree: true,
+    hasReferencePhoto: true,
   },
   {
-    id: 'retention_flow',
-    title: 'Fidelización y Referidos',
-    description: 'Activa flujos automatizados de WhatsApp para retención post-cita.',
-    icon: <Award className="w-6 h-6 text-emerald-500" />,
-    cost: 0,
-    color: 'bg-emerald-50 border-emerald-100 hover:border-emerald-300'
+    level: 5,
+    title: 'Agente Personal Post-Cita',
+    subtitle: 'Seguimiento por WhatsApp con IA',
+    description: 'Un agente especializado de DeepSeek da seguimiento post-cita a tus clientes por WhatsApp. Envía recordatorios automáticos, reagendamientos y mensajes personalizados según las instrucciones que le des.',
+    badge: 'WhatsApp IA',
+    badgeColor: 'bg-green-100 text-green-700',
+    icon: <MessageSquare className="w-7 h-7" />,
+    gradient: 'from-green-500 to-emerald-400',
+    borderColor: 'border-green-200',
+    isFree: true,
+    hasReferencePhoto: false,
   },
-  {
-    id: 'reengagement_flash',
-    title: 'Ofertas Flash IA',
-    description: 'Reactiva clientes inactivos con ofertas por WhatsApp.',
-    icon: <Zap className="w-6 h-6 text-yellow-500" />,
-    cost: 0,
-    color: 'bg-yellow-50 border-yellow-100 hover:border-yellow-300'
-  }
 ];
 
+const VOICE_TYPES = [
+  { value: 'female_warm', label: '🎙️ Femenina — Cálida y Empática' },
+  { value: 'male_professional', label: '🎙️ Masculina — Profesional y Directa' },
+  { value: 'cinematic_narrator', label: '🎙️ Narrador Cinematográfico — Grave y Profundo' },
+];
+
+// ─── ASSET STATUS BADGE ─────────────────────────────────────────────────────
+const AssetStatusBadge: React.FC<{ status: MarketingAsset['status'] }> = ({ status }) => {
+  if (status === 'processing') return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-bold">
+      <RefreshCw className="w-3 h-3 animate-spin" /> Generando...
+    </span>
+  );
+  if (status === 'ready') return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">
+      <CheckCircle2 className="w-3 h-3" /> Listo
+    </span>
+  );
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-bold">
+      <AlertCircle className="w-3 h-3" /> Error
+    </span>
+  );
+};
+
+// ─── ASSET CARD ─────────────────────────────────────────────────────────────
+const AssetCard: React.FC<{
+  asset: MarketingAsset;
+  affiliate: Affiliate;
+  onAddToPage: (asset: MarketingAsset) => void;
+  onTogglingId: string | null;
+}> = ({ asset, affiliate, onAddToPage, onTogglingId }) => {
+  const levelDef = MARKETING_LEVELS.find(l => l.level === asset.level);
+  const isToggling = onTogglingId === asset.id;
+
+  const isVideo = asset.assetType === 'cinematic_video' || asset.assetType === 'animated_video';
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+      {/* Media Preview */}
+      <div className="relative bg-gray-900 aspect-video flex items-center justify-center">
+        {asset.status === 'processing' ? (
+          <div className="flex flex-col items-center gap-3 text-white/60">
+            <RefreshCw className="w-10 h-10 animate-spin text-white/40" />
+            <p className="text-sm font-medium">Generando con IA...</p>
+            <p className="text-xs text-white/40">Esto puede tomar 1-3 minutos</p>
+          </div>
+        ) : asset.status === 'error' ? (
+          <div className="flex flex-col items-center gap-2 text-red-400 p-4 text-center">
+            <AlertCircle className="w-8 h-8" />
+            <p className="text-sm">{asset.errorMessage || 'Error al generar'}</p>
+          </div>
+        ) : asset.mediaUrl ? (
+          isVideo ? (
+            <video
+              src={asset.mediaUrl}
+              poster={asset.thumbnailUrl}
+              controls
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <img
+              src={asset.mediaUrl}
+              alt={asset.title}
+              className="w-full h-full object-cover"
+            />
+          )
+        ) : (
+          <div className="flex items-center justify-center w-full h-full text-white/30">
+            <ImageIcon className="w-12 h-12" />
+          </div>
+        )}
+
+        {/* Level badge */}
+        {levelDef && (
+          <div className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-white text-xs font-bold bg-gradient-to-r ${levelDef.gradient}`}>
+            Nivel {asset.level}
+          </div>
+        )}
+
+        {/* Status badge */}
+        <div className="absolute top-2 right-2">
+          <AssetStatusBadge status={asset.status} />
+        </div>
+      </div>
+
+      {/* Info */}
+      <div className="p-4">
+        <h4 className="font-bold text-gray-900 text-sm mb-1">{asset.title}</h4>
+        {asset.serviceName && (
+          <p className="text-xs text-gray-500 mb-2">Servicio: {asset.serviceName}</p>
+        )}
+        {asset.copyText && (
+          <p className="text-xs text-gray-600 italic line-clamp-2 mb-3">"{asset.copyText}"</p>
+        )}
+        <p className="text-[11px] text-gray-400 mb-3">{new Date(asset.createdAt).toLocaleDateString('es-MX')}</p>
+
+        {/* Action Buttons */}
+        {asset.status === 'ready' && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => onAddToPage(asset)}
+              disabled={isToggling}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                asset.addedToLanding
+                  ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                  : 'bg-gray-900 text-white hover:bg-black'
+              } disabled:opacity-60`}
+            >
+              {isToggling ? (
+                <RefreshCw className="w-3 h-3 animate-spin" />
+              ) : asset.addedToLanding ? (
+                <><CheckCircle2 className="w-3 h-3" /> En mi página</>
+              ) : (
+                <><Plus className="w-3 h-3" /> Agregar a mi página</>
+              )}
+            </button>
+
+            {asset.mediaUrl && (
+              <a
+                href={asset.mediaUrl}
+                download={`citasmas-nivel${asset.level}-${asset.id}.${isVideo ? 'mp4' : 'png'}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-xl text-xs font-bold transition-all"
+              >
+                <Download className="w-3 h-3" /> Descargar
+              </a>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─── MAIN COMPONENT ─────────────────────────────────────────────────────────
 export const MarketingToolsView: React.FC<Props> = ({
   affiliate,
   onUpdateAffiliate,
   onClose,
-  initialTab
 }) => {
-  const [selectedTool, setSelectedTool] = useState<ToolDefinition | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [statusMessage, setStatusMessage] = useState('');
+  const [activeTab, setActiveTab] = useState<'catalog' | 'my_assets'>('catalog');
+  const [selectedLevel, setSelectedLevel] = useState<LevelDefinition | null>(null);
+  const [assets, setAssets] = useState<MarketingAsset[]>([]);
+  const [isLoadingAssets, setIsLoadingAssets] = useState(false);
+  const [isDispatching, setIsDispatching] = useState(false);
+  const [dispatchStatus, setDispatchStatus] = useState('');
+  const [togglingAssetId, setTogglingAssetId] = useState<string | null>(null);
 
-  // Tool specific states
+  // Form fields per level
+  const [selectedServiceId, setSelectedServiceId] = useState(affiliate.services?.[0]?.id || '');
   const [voiceType, setVoiceType] = useState('female_warm');
   const [customInstructions, setCustomInstructions] = useState('');
+  const [selectedReferencePhotos, setSelectedReferencePhotos] = useState<string[]>([]);
 
-  const handleSelectTool = (tool: ToolDefinition) => {
-    setSelectedTool(tool);
-    setStatusMessage('');
+  // Real-time subscription to marketing assets
+  useEffect(() => {
+    setIsLoadingAssets(true);
+    const unsub = DataService.getInstance().subscribeToMarketingAssets(
+      affiliate.id,
+      (updatedAssets) => {
+        setAssets(updatedAssets);
+        setIsLoadingAssets(false);
+      }
+    );
+    return () => unsub();
+  }, [affiliate.id]);
+
+  const getSelectedService = () =>
+    affiliate.services?.find(s => s.id === selectedServiceId) || affiliate.services?.[0];
+
+  // Toggle reference photo selection from gallery
+  const toggleReferencePhoto = (url: string) => {
+    setSelectedReferencePhotos(prev =>
+      prev.includes(url) ? prev.filter(u => u !== url) : [...prev, url].slice(0, 3)
+    );
   };
 
-  const handleBack = () => {
-    setSelectedTool(null);
-    setStatusMessage('');
-    setIsProcessing(false);
-  };
+  // Dispatch to n8n
+  const handleDispatch = async () => {
+    if (!selectedLevel) return;
+    setIsDispatching(true);
+    setDispatchStatus('Conectando con los servidores de IA...');
 
-  const handleDispatchToN8n = async () => {
-    if (!selectedTool) return;
-    
-    setIsProcessing(true);
-    setStatusMessage('Procesando tu solicitud y conectando con los servidores...');
+    const service = getSelectedService();
+    const pendingAssetId = `mkt-${affiliate.id}-lvl${selectedLevel.level}-${Date.now()}`;
+
+    // Create a "processing" placeholder in Firestore immediately so the UI shows it
+    const placeholderAsset: MarketingAsset = {
+      id: pendingAssetId,
+      affiliateId: affiliate.id,
+      level: selectedLevel.level,
+      assetType: selectedLevel.level === 1 ? 'buyer_personas'
+        : selectedLevel.level === 2 ? (selectedReferencePhotos.length > 0 ? 'flyer_with_reference' : 'flyer_image')
+        : selectedLevel.level === 3 ? 'animated_video'
+        : selectedLevel.level === 4 ? 'cinematic_video'
+        : 'whatsapp_agent',
+      kieModel: selectedLevel.kieModel,
+      title: `${selectedLevel.title} — ${service?.name || affiliate.businessName}`,
+      serviceName: service?.name,
+      serviceId: service?.id,
+      voiceType,
+      referencePhotoUrls: selectedReferencePhotos,
+      status: 'processing',
+      addedToLanding: false,
+      includedMonthly: selectedLevel.level === 4,
+      createdAt: new Date().toISOString(),
+    };
 
     try {
-      const toolData = {
-        voiceType: voiceType,
-        customInstructions: customInstructions,
-        // Add other dynamic fields here based on selected tool
-      };
+      await DataService.getInstance().saveMarketingAsset(placeholderAsset);
+    } catch (_) {
+      // non-fatal
+    }
 
-      const n8nService = N8nWebhookService.getInstance();
-      await n8nService.dispatchMarketingTool(selectedTool.id, affiliate, toolData);
+    // Build n8n payload
+    const payload = {
+      toolType: `level_${selectedLevel.level}`,
+      level: selectedLevel.level,
+      assetId: pendingAssetId,
+      affiliateId: affiliate.id,
+      businessName: affiliate.businessName || affiliate.name,
+      contactPhone: affiliate.phone,
+      contactEmail: affiliate.email,
+      categoryLabel: affiliate.categoryLabel,
+      city: affiliate.city,
+      state: affiliate.state,
+      country: affiliate.country,
+      logo: affiliate.logo,
+      gallery: affiliate.gallery,
+      description: affiliate.description,
+      services: affiliate.services,
+      buyerPersonas: affiliate.buyerPersonas,
+      selectedService: service,
+      voiceType,
+      customInstructions,
+      referencePhotoUrls: selectedReferencePhotos,
+      kieModel: selectedLevel.kieModel || 'grok-image-2',
+      // Kie.ai model instructions per level
+      kieModelInstructions: {
+        level2: 'Use Grok Image 2 (grok-image-2) for text-to-image flyer generation. If reference photos provided, use Grok Image-to-Image (grok-image-to-image) with them as style references.',
+        level3: 'Use Grok Video 1.5 (grok-video-1.5) for Image-to-Video animation. Animate the level-2 flyer into a 15-30 second spot with AI voiceover.',
+        level4: 'Use Grok Image-to-Video (grok-image-to-video) with reference photos if available. Generate a 1-minute cinematic video: 0-15s problem detection, 15-35s solution presentation, 35-50s CitasMás demo, 50-60s call to action.',
+      },
+      timestamp: new Date().toISOString(),
+    };
 
-      setStatusMessage('¡Solicitud enviada exitosamente! Te notificaremos por WhatsApp cuando tu video/campaña esté lista.');
-      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-      
-    } catch (error: any) {
-      console.error("Error dispatching tool:", error);
-      setStatusMessage(`Error: ${error.message || 'No se pudo conectar con el servidor.'}`);
+    try {
+      setDispatchStatus('Enviando solicitud a los agentes de IA...');
+      const response = await fetch(N8N_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        setDispatchStatus('');
+        setSelectedLevel(null);
+        setCustomInstructions('');
+        setSelectedReferencePhotos([]);
+        setActiveTab('my_assets');
+        confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } });
+      } else {
+        const errText = await response.text().catch(() => '');
+        setDispatchStatus(`Error: ${errText || 'No se pudo conectar con el servidor de IA.'}`);
+        // Update placeholder to error
+        await DataService.getInstance().saveMarketingAsset({
+          ...placeholderAsset,
+          status: 'error',
+          errorMessage: errText || 'Falló la solicitud al webhook de n8n.',
+        });
+      }
+    } catch (err: any) {
+      setDispatchStatus(`Error de conexión: ${err.message}`);
+      await DataService.getInstance().saveMarketingAsset({
+        ...placeholderAsset,
+        status: 'error',
+        errorMessage: err.message,
+      });
     } finally {
-      setIsProcessing(false);
+      setIsDispatching(false);
     }
   };
 
+  // Add/remove from affiliate landing page
+  const handleToggleOnLanding = async (asset: MarketingAsset) => {
+    setTogglingAssetId(asset.id);
+    try {
+      const updatedAffiliate = await DataService.getInstance().toggleAssetOnLanding(asset, affiliate);
+      onUpdateAffiliate(updatedAffiliate);
+      // Optimistically update local asset list
+      setAssets(prev => prev.map(a => a.id === asset.id ? { ...a, addedToLanding: !a.addedToLanding } : a));
+    } catch (err) {
+      console.error('Error toggling asset on landing:', err);
+    } finally {
+      setTogglingAssetId(null);
+    }
+  };
 
-  const renderToolDetails = () => {
-    if (!selectedTool) return null;
+  // Count free cinematic videos used this period (every 2 months)
+  const now = new Date();
+  const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, now.getDate()).toISOString();
+  const recentCinematicCount = assets.filter(
+    a => a.level === 4 && a.includedMonthly && a.createdAt >= twoMonthsAgo
+  ).length;
+  const hasFreeVideoAvailable = recentCinematicCount === 0;
+
+  // ─── LEVEL DETAIL VIEW ────────────────────────────────────────────────────
+  const renderLevelDetail = () => {
+    if (!selectedLevel) return null;
+    const def = selectedLevel;
+    const isLevel4 = def.level === 4;
 
     return (
-      <div className="animate-fade-in space-y-6">
-        <button onClick={handleBack} className="flex items-center text-gray-500 hover:text-gray-800">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Volver al catálogo
+      <div className="space-y-6 animate-in fade-in duration-200">
+        <button
+          onClick={() => { setSelectedLevel(null); setDispatchStatus(''); }}
+          className="flex items-center gap-2 text-gray-500 hover:text-gray-800 text-sm font-medium"
+        >
+          <ArrowLeft className="w-4 h-4" /> Volver al catálogo
         </button>
 
-        <div className={`p-6 rounded-2xl border ${selectedTool.color}`}>
-          <div className="flex items-center space-x-4 mb-4">
-            <div className="p-3 bg-white rounded-xl shadow-sm">
-              {selectedTool.icon}
-            </div>
+        {/* Header */}
+        <div className={`p-6 rounded-2xl bg-gradient-to-br ${def.gradient} text-white`}>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2.5 bg-white/20 rounded-xl">{def.icon}</div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">{selectedTool.title}</h2>
-              <p className="text-gray-600">{selectedTool.description}</p>
+              <p className="text-white/70 text-sm font-medium">Nivel {def.level}</p>
+              <h2 className="text-xl font-black">{def.title}</h2>
             </div>
           </div>
+          <p className="text-white/90 text-sm leading-relaxed">{def.description}</p>
+          {isLevel4 && (
+            <div className="mt-3 bg-white/20 rounded-xl p-3 flex items-center gap-2">
+              <Star className="w-4 h-4 text-yellow-300" />
+              <p className="text-sm font-bold">
+                {hasFreeVideoAvailable
+                  ? '✨ Tienes 1 video cinematográfico GRATIS disponible este período (cada 2 meses).'
+                  : '⏳ Usaste tu video gratis este período. El siguiente será en menos de 2 meses.'}
+              </p>
+            </div>
+          )}
+        </div>
 
-          <div className="mt-6 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="font-semibold text-gray-800 mb-4">Configuración de la Campaña</h3>
-            
-            {/* Dynamic Configuration based on Tool ID */}
-            {(selectedTool.id === 'video_pro' || selectedTool.id === 'video_premium') && (
-              <div className="space-y-4 mb-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Voz IA</label>
-                  <select 
-                    value={voiceType}
-                    onChange={(e) => setVoiceType(e.target.value)}
-                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+        {/* Config form */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
+          <h3 className="font-bold text-gray-800">Configuración de tu Campaña</h3>
+
+          {/* Service selector */}
+          {affiliate.services && affiliate.services.length > 0 && def.level !== 1 && def.level !== 5 && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                ¿Para qué servicio deseas la campaña?
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {affiliate.services.map((svc) => (
+                  <button
+                    key={svc.id}
+                    onClick={() => setSelectedServiceId(svc.id)}
+                    className={`p-3 rounded-xl border-2 text-left transition-all ${
+                      selectedServiceId === svc.id
+                        ? 'border-gray-900 bg-gray-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
                   >
-                    <option value="female_warm">Femenina (Cálida y Empática)</option>
-                    <option value="male_professional">Masculina (Profesional y Directa)</option>
-                    <option value="cinematic_narrator">Narrador Cinematográfico (Grave)</option>
-                  </select>
-                </div>
-                <div>
-                   <label className="block text-sm font-medium text-gray-700 mb-1">Instrucciones Adicionales (Opcional)</label>
-                   <textarea
-                     value={customInstructions}
-                     onChange={(e) => setCustomInstructions(e.target.value)}
-                     className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                     rows={3}
-                     placeholder="Ej: Quiero que mencionen nuestra promoción de 2x1 los martes..."
-                   />
-                </div>
+                    <p className="text-sm font-bold text-gray-900">{svc.name}</p>
+                    <p className="text-xs text-gray-500">${svc.price.toLocaleString()} MXN · {svc.duration} min</p>
+                  </button>
+                ))}
               </div>
-            )}
+            </div>
+          )}
 
-            {selectedTool.cost > 0 && (
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-6 flex items-center justify-between">
-                <span className="font-medium text-blue-900">Inversión requerida:</span>
-                <span className="text-xl font-bold text-blue-700">${selectedTool.cost} MXN</span>
+          {/* Voice type (Level 3 & 4) */}
+          {(def.level === 3 || def.level === 4) && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Tipo de Voz IA para la Locución
+              </label>
+              <div className="space-y-2">
+                {VOICE_TYPES.map((v) => (
+                  <button
+                    key={v.value}
+                    onClick={() => setVoiceType(v.value)}
+                    className={`w-full p-3 rounded-xl border-2 text-left text-sm transition-all ${
+                      voiceType === v.value
+                        ? 'border-gray-900 bg-gray-50 font-bold'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    {v.label}
+                  </button>
+                ))}
               </div>
-            )}
+            </div>
+          )}
 
-            <button
-              onClick={handleDispatchToN8n}
-              disabled={isProcessing}
-              className={`w-full py-3 px-4 rounded-xl text-white font-semibold flex items-center justify-center transition-all ${
-                isProcessing ? 'bg-gray-400 cursor-not-allowed' : 'bg-gray-900 hover:bg-black shadow-lg hover:shadow-xl'
-              }`}
-            >
-              {isProcessing ? (
-                <>
-                  <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
-                  Procesando...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-5 h-5 mr-2" />
-                  Generar con IA (N8N)
-                </>
+          {/* Reference photos (Level 2, 3, 4) */}
+          {def.hasReferencePhoto && affiliate.gallery && affiliate.gallery.length > 0 && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                Fotos de Referencia (opcional) — hasta 3
+              </label>
+              <p className="text-xs text-gray-500 mb-2">
+                {def.level === 2 && 'Se usarán con Grok Image-to-Image para adaptar el flyer a tu estilo real.'}
+                {def.level === 3 && 'Se usarán con Grok Video 1.5 para animar con fotos de tu negocio.'}
+                {def.level === 4 && 'Se usarán con Grok Image-to-Video para el video cinemático.'}
+              </p>
+              <div className="grid grid-cols-4 gap-2">
+                {affiliate.gallery.map((url, i) => (
+                  <button
+                    key={i}
+                    onClick={() => toggleReferencePhoto(url)}
+                    className={`relative aspect-square rounded-lg overflow-hidden border-3 transition-all ${
+                      selectedReferencePhotos.includes(url) ? 'ring-2 ring-gray-900 ring-offset-1' : 'opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                    {selectedReferencePhotos.includes(url) && (
+                      <div className="absolute inset-0 bg-gray-900/40 flex items-center justify-center">
+                        <CheckCircle2 className="w-5 h-5 text-white" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+              {selectedReferencePhotos.length > 0 && (
+                <p className="text-xs text-gray-500 mt-1">{selectedReferencePhotos.length} foto(s) seleccionada(s)</p>
               )}
-            </button>
+            </div>
+          )}
 
-            {statusMessage && (
-              <div className={`mt-4 p-4 rounded-lg text-sm ${statusMessage.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
-                {statusMessage}
-              </div>
-            )}
+          {/* Custom instructions */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Instrucciones Personalizadas para la IA (Opcional)
+            </label>
+            <textarea
+              value={customInstructions}
+              onChange={(e) => setCustomInstructions(e.target.value)}
+              rows={3}
+              placeholder={
+                def.level === 4
+                  ? 'Ej: El video debe tener un tono cálido y empático. Resalta nuestra especialidad en...'
+                  : def.level === 5
+                  ? 'Ej: Quiero que mi agente recuerde a los clientes reagendar si no vienen y les ofrezca un 10% de descuento...'
+                  : 'Ej: Resalta nuestra promoción de verano, que el diseño sea en colores azul y blanco...'
+              }
+              className="w-full border border-gray-200 rounded-xl p-3 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-gray-400 transition-colors resize-none"
+            />
           </div>
+
+          {/* Kie.ai model info */}
+          {def.kieModel && (
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-800">
+              <p className="font-bold mb-1">Modelo IA que se usará:</p>
+              {def.level === 2 && !selectedReferencePhotos.length && <p><strong>Grok Image 2</strong> — Texto a Imagen de alta fidelidad</p>}
+              {def.level === 2 && selectedReferencePhotos.length > 0 && <p><strong>Grok Image-to-Image</strong> — Genera imagen usando tus fotos como referencia visual</p>}
+              {def.level === 3 && <p><strong>Grok Video 1.5</strong> — Anima el flyer en video con locución IA</p>}
+              {def.level === 4 && <p><strong>Grok Image-to-Video</strong> — Genera el video cinemático de 1 minuto</p>}
+            </div>
+          )}
+
+          {/* Dispatch button */}
+          <button
+            onClick={handleDispatch}
+            disabled={isDispatching}
+            className={`w-full py-4 rounded-xl text-white font-black text-sm flex items-center justify-center gap-2 transition-all ${
+              isDispatching
+                ? 'bg-gray-400 cursor-not-allowed'
+                : `bg-gradient-to-r ${def.gradient} hover:shadow-lg hover:scale-[1.01]`
+            }`}
+          >
+            {isDispatching ? (
+              <><RefreshCw className="w-5 h-5 animate-spin" /> Procesando con IA...</>
+            ) : (
+              <><Sparkles className="w-5 h-5" /> Generar Nivel {def.level} — {def.title}</>
+            )}
+          </button>
+
+          {dispatchStatus && (
+            <div className={`p-4 rounded-xl text-sm ${
+              dispatchStatus.includes('Error')
+                ? 'bg-red-50 text-red-700 border border-red-100'
+                : 'bg-blue-50 text-blue-700 border border-blue-100'
+            }`}>
+              {dispatchStatus}
+            </div>
+          )}
         </div>
       </div>
     );
   };
 
+  // ─── MAIN RENDER ──────────────────────────────────────────────────────────
   return (
     <div className="h-full bg-gray-50/50 flex flex-col">
+      {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-20">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-            <Sparkles className="w-6 h-6 text-purple-600 mr-2" />
+          <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+            <Sparkles className="w-6 h-6 text-purple-600" />
             Herramientas de Marketing Inteligente
           </h1>
-          <p className="text-gray-500 mt-1">Automatiza tu crecimiento con IA y WhatsApp.</p>
+          <p className="text-gray-500 text-sm mt-0.5">
+            5 niveles de IA para hacer crecer tu negocio — Powered by DeepSeek + Kie.ai (Grok Image 2)
+          </p>
         </div>
-        {onClose && (
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors">
-            <X className="w-6 h-6" />
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {/* Tab switcher */}
+          <div className="flex bg-gray-100 rounded-xl p-1">
+            <button
+              onClick={() => { setActiveTab('catalog'); setSelectedLevel(null); }}
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'catalog' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Catálogo
+            </button>
+            <button
+              onClick={() => { setActiveTab('my_assets'); setSelectedLevel(null); }}
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 ${activeTab === 'my_assets' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Mis Materiales
+              {assets.length > 0 && (
+                <span className="bg-gray-900 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">{assets.length}</span>
+              )}
+            </button>
+          </div>
+          {onClose && (
+            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="p-6 max-w-7xl mx-auto w-full flex-1 overflow-y-auto">
-        {!selectedTool ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {MARKETING_TOOLS.map((tool) => (
-              <div 
-                key={tool.id}
-                onClick={() => handleSelectTool(tool)}
-                className={`p-6 rounded-2xl border bg-white cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-lg ${tool.color}`}
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div className="p-3 bg-white rounded-xl shadow-sm">
-                    {tool.icon}
-                  </div>
-                  {tool.cost > 0 ? (
-                    <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm font-semibold rounded-full">
-                      ${tool.cost} MXN
-                    </span>
-                  ) : (
-                    <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-semibold rounded-full">
-                      Incluido
-                    </span>
-                  )}
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto p-6 max-w-7xl mx-auto w-full">
+
+        {/* ── CATALOG TAB ── */}
+        {activeTab === 'catalog' && !selectedLevel && (
+          <div className="space-y-4">
+            {/* Cinematic video free banner */}
+            {hasFreeVideoAvailable && (
+              <div className="bg-gradient-to-r from-rose-600 to-pink-500 text-white rounded-2xl p-4 flex items-center gap-3">
+                <Star className="w-8 h-8 text-yellow-300 shrink-0" />
+                <div>
+                  <p className="font-black">🎬 Tienes 1 Video Cinematográfico GRATIS disponible</p>
+                  <p className="text-white/80 text-sm">Cada afiliado recibe 1 video profesional de 1 minuto cada 2 meses. ¡Úsalo ahora!</p>
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">{tool.title}</h3>
-                <p className="text-gray-600 text-sm">{tool.description}</p>
+                <button
+                  onClick={() => setSelectedLevel(MARKETING_LEVELS.find(l => l.level === 4)!)}
+                  className="ml-auto shrink-0 bg-white text-rose-600 font-black text-sm px-4 py-2 rounded-xl hover:bg-rose-50 transition-all"
+                >
+                  Generar
+                </button>
               </div>
-            ))}
+            )}
+
+            {/* Level cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {MARKETING_LEVELS.map((def) => (
+                <button
+                  key={def.level}
+                  onClick={() => setSelectedLevel(def)}
+                  className={`p-6 rounded-2xl border-2 ${def.borderColor} bg-white text-left hover:-translate-y-1 hover:shadow-lg transition-all duration-200 cursor-pointer`}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`p-3 rounded-xl bg-gradient-to-br ${def.gradient} text-white`}>
+                      {def.icon}
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-xs font-black text-gray-400 uppercase tracking-wider">Nivel {def.level}</span>
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${def.badgeColor}`}>
+                        {def.badge}
+                      </span>
+                    </div>
+                  </div>
+                  <h3 className="text-base font-black text-gray-900 mb-1">{def.title}</h3>
+                  <p className="text-xs font-semibold text-gray-500 mb-2">{def.subtitle}</p>
+                  <p className="text-xs text-gray-600 leading-relaxed">{def.description.substring(0, 100)}...</p>
+
+                  <div className="mt-4 flex items-center gap-1 text-gray-400 text-xs font-semibold">
+                    <span>Comenzar</span><ChevronRight className="w-3 h-3" />
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
-        ) : (
-          renderToolDetails()
+        )}
+
+        {/* ── LEVEL DETAIL ── */}
+        {activeTab === 'catalog' && selectedLevel && renderLevelDetail()}
+
+        {/* ── MY ASSETS TAB ── */}
+        {activeTab === 'my_assets' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-black text-gray-900">Mis Materiales Generados</h2>
+                <p className="text-sm text-gray-500">Los recursos generados por la IA aparecen aquí en tiempo real.</p>
+              </div>
+              <button
+                onClick={() => setActiveTab('catalog')}
+                className="flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-black transition-all"
+              >
+                <Plus className="w-4 h-4" /> Generar nuevo
+              </button>
+            </div>
+
+            {isLoadingAssets ? (
+              <div className="flex items-center justify-center py-16">
+                <RefreshCw className="w-8 h-8 animate-spin text-gray-400" />
+              </div>
+            ) : assets.length === 0 ? (
+              <div className="text-center py-20 text-gray-400">
+                <ImageIcon className="w-14 h-14 mx-auto mb-4 opacity-30" />
+                <p className="font-bold text-gray-600">Aún no tienes materiales generados</p>
+                <p className="text-sm mt-1">Ve al catálogo y genera tu primera campaña con IA</p>
+                <button
+                  onClick={() => setActiveTab('catalog')}
+                  className="mt-4 px-6 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-black transition-all"
+                >
+                  Ir al Catálogo
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {assets.map((asset) => (
+                  <AssetCard
+                    key={asset.id}
+                    asset={asset}
+                    affiliate={affiliate}
+                    onAddToPage={handleToggleOnLanding}
+                    onTogglingId={togglingAssetId}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
