@@ -928,6 +928,22 @@ export const AffiliateDashboardView: React.FC<Props> = ({
         </button>
 
         <button
+          id="dashboard-tab-marketing-btn"
+          onClick={() => setActiveTab('marketing')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 whitespace-nowrap shadow-xs ${
+            activeTab === 'marketing'
+              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
+              : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-emerald-500 fill-emerald-500" />
+          <span>Marketing & IA (5 Niveles)</span>
+          <span className="ml-1 bg-emerald-600 text-white text-[9px] px-1.5 py-0.2 rounded-full font-black animate-pulse">
+            NUEVO
+          </span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('appointments')}
           className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 whitespace-nowrap ${
             activeTab === 'appointments'

@@ -17,7 +17,9 @@ const N8N_WEBHOOK_URL = 'https://n8n.bahiago.tech/webhook/marketing-citas-mas';
 
 interface Props {
   affiliate: Affiliate;
+  initialTab?: string;
   onUpdateAffiliate: (updated: Affiliate) => void;
+  onNavigateToLanding?: () => void;
   onClose?: () => void;
 }
 
@@ -268,11 +270,34 @@ const AssetCard: React.FC<{
 // ─── MAIN COMPONENT ─────────────────────────────────────────────────────────
 export const MarketingToolsView: React.FC<Props> = ({
   affiliate,
+  initialTab,
   onUpdateAffiliate,
+  onNavigateToLanding,
   onClose,
 }) => {
   const [activeTab, setActiveTab] = useState<'catalog' | 'my_assets'>('catalog');
   const [selectedLevel, setSelectedLevel] = useState<LevelDefinition | null>(null);
+
+  // If opened via dropdown with a specific level, pre-select it
+  useEffect(() => {
+    if (!initialTab) return;
+    if (initialTab === 'audience') {
+      const l = MARKETING_LEVELS.find(x => x.level === 1);
+      if (l) setSelectedLevel(l);
+    } else if (initialTab === 'campaign_2d') {
+      const l = MARKETING_LEVELS.find(x => x.level === 2);
+      if (l) setSelectedLevel(l);
+    } else if (initialTab === 'campaign_pro') {
+      const l = MARKETING_LEVELS.find(x => x.level === 3);
+      if (l) setSelectedLevel(l);
+    } else if (initialTab === 'campaign_premium') {
+      const l = MARKETING_LEVELS.find(x => x.level === 4);
+      if (l) setSelectedLevel(l);
+    } else if (initialTab === 'n8n_retention' || initialTab === 'whatsapp_agent') {
+      const l = MARKETING_LEVELS.find(x => x.level === 5);
+      if (l) setSelectedLevel(l);
+    }
+  }, [initialTab]);
   const [assets, setAssets] = useState<MarketingAsset[]>([]);
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
   const [isDispatching, setIsDispatching] = useState(false);
@@ -280,6 +305,7 @@ export const MarketingToolsView: React.FC<Props> = ({
   const [togglingAssetId, setTogglingAssetId] = useState<string | null>(null);
 
   // Form fields per level
+  const [campaignScope, setCampaignScope] = useState<'specific' | 'global'>('specific');
   const [selectedServiceId, setSelectedServiceId] = useState(affiliate.services?.[0]?.id || '');
   const [voiceType, setVoiceType] = useState('female_warm');
   const [disruptiveLevel, setDisruptiveLevel] = useState<'conservative' | 'persuasive' | 'disruptive_viral'>('persuasive');
@@ -299,8 +325,24 @@ export const MarketingToolsView: React.FC<Props> = ({
     return () => unsub();
   }, [affiliate.id]);
 
-  const getSelectedService = () =>
-    affiliate.services?.find(s => s.id === selectedServiceId) || affiliate.services?.[0];
+  const getSelectedService = () => {
+    if (campaignScope === 'global') {
+      return {
+        id: 'global',
+        name: `Visión Global y Catálogo Completo de ${affiliate.businessName || affiliate.name}`,
+        price: affiliate.services?.[0]?.price || 500,
+        duration: 45,
+        description: `Promoción integral de la marca ${affiliate.businessName || affiliate.name}. Presenta la variedad de servicios de ${affiliate.categoryLabel}, instalaciones y prestigio profesional en ${affiliate.city}.`
+      };
+    }
+    return affiliate.services?.find(s => s.id === selectedServiceId) || affiliate.services?.[0] || {
+      id: 'default',
+      name: 'Consulta Especializada',
+      price: 500,
+      duration: 45,
+      description: 'Atención personalizada'
+    };
+  };
 
   // Toggle reference photo selection from gallery
   const toggleReferencePhoto = (url: string) => {
@@ -365,6 +407,10 @@ export const MarketingToolsView: React.FC<Props> = ({
       services: affiliate.services,
       buyerPersonas: affiliate.buyerPersonas,
       selectedService: service,
+      campaignScope,
+      campaignFocusDescription: campaignScope === 'global'
+        ? `Campaña GLOBAL e Institucional de la marca "${affiliate.businessName || affiliate.name}". El video/anuncio debe promover todo el catálogo de servicios de ${affiliate.categoryLabel}, instalaciones y prestigio profesional en ${affiliate.city}.`
+        : `Campaña enfocada 100% en el SERVICIO ESPECÍFICO "${service?.name}". El video/anuncio debe abordar exclusivamente los dolores, beneficios y oferta de este servicio ($${service?.price} MXN).`,
       voiceType,
       disruptiveLevel,
       disruptiveLabel: DISRUPTIVE_LEVELS.find(d => d.value === disruptiveLevel)?.label || 'Persuasivo Comercial',
@@ -482,28 +528,94 @@ export const MarketingToolsView: React.FC<Props> = ({
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
           <h3 className="font-bold text-gray-800">Configuración de tu Campaña</h3>
 
-          {/* Service selector */}
-          {affiliate.services && affiliate.services.length > 0 && def.level !== 1 && def.level !== 5 && (
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                ¿Para qué servicio deseas la campaña?
+          {/* Enfoque del Video / Publicidad (Servicio Específico vs Promoción Global) */}
+          {def.level !== 1 && def.level !== 5 && (
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-gray-700">
+                ¿En qué deseas enfocar tu video o anuncio?
               </label>
+              
+              {/* Scope Switcher Tabs */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {affiliate.services.map((svc) => (
-                  <button
-                    key={svc.id}
-                    onClick={() => setSelectedServiceId(svc.id)}
-                    className={`p-3 rounded-xl border-2 text-left transition-all ${
-                      selectedServiceId === svc.id
-                        ? 'border-gray-900 bg-gray-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <p className="text-sm font-bold text-gray-900">{svc.name}</p>
-                    <p className="text-xs text-gray-500">${svc.price.toLocaleString()} MXN · {svc.duration} min</p>
-                  </button>
-                ))}
+                <button
+                  type="button"
+                  onClick={() => setCampaignScope('specific')}
+                  className={`p-3 rounded-xl border-2 text-left transition-all ${
+                    campaignScope === 'specific'
+                      ? 'border-gray-900 bg-gray-50 shadow-xs'
+                      : 'border-gray-200 hover:border-gray-300 bg-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-base">🎯</span>
+                    <span className="font-bold text-sm text-gray-900">Servicio o Producto Específico</span>
+                  </div>
+                  <p className="text-xs text-gray-500 leading-snug">
+                    El video se centrará al 100% en los beneficios, dolores directos y precio de un servicio puntual de tu catálogo.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setCampaignScope('global')}
+                  className={`p-3 rounded-xl border-2 text-left transition-all ${
+                    campaignScope === 'global'
+                      ? 'border-purple-600 bg-purple-50/70 shadow-xs'
+                      : 'border-gray-200 hover:border-gray-300 bg-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-base">🌟</span>
+                    <span className="font-bold text-sm text-gray-900">Promoción Global de tu Negocio</span>
+                  </div>
+                  <p className="text-xs text-gray-500 leading-snug">
+                    El video destacará tu marca, instalaciones, prestigio y la variedad de todos tus servicios para generar citas generales.
+                  </p>
+                </button>
               </div>
+
+              {/* Specific service grid (shown only if specific scope is selected) */}
+              {campaignScope === 'specific' && affiliate.services && affiliate.services.length > 0 && (
+                <div className="pt-2 animate-in fade-in duration-200">
+                  <span className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                    Selecciona el servicio a promocionar:
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto p-1">
+                    {affiliate.services.map((svc) => (
+                      <button
+                        key={svc.id}
+                        type="button"
+                        onClick={() => setSelectedServiceId(svc.id)}
+                        className={`p-3 rounded-xl border-2 text-left transition-all ${
+                          selectedServiceId === svc.id
+                            ? 'border-gray-900 bg-gray-900 text-white shadow-xs'
+                            : 'border-gray-200 hover:border-gray-300 bg-white text-gray-900'
+                        }`}
+                      >
+                        <p className={`text-sm font-bold truncate ${selectedServiceId === svc.id ? 'text-white' : 'text-gray-900'}`}>
+                          {svc.name}
+                        </p>
+                        <p className={`text-xs mt-0.5 ${selectedServiceId === svc.id ? 'text-gray-300' : 'text-gray-500'}`}>
+                          ${svc.price.toLocaleString()} MXN · {svc.duration} min
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Global banner (shown when global scope is selected) */}
+              {campaignScope === 'global' && (
+                <div className="p-3.5 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl text-xs text-purple-900 flex items-start gap-2.5 animate-in fade-in duration-200">
+                  <span className="text-base">✨</span>
+                  <div>
+                    <p className="font-bold">Campaña de Marca Completa</p>
+                    <p className="text-purple-800/90 mt-0.5 leading-relaxed">
+                      El video presentará a <strong>{affiliate.businessName || affiliate.name}</strong> como la opción líder en {affiliate.categoryLabel} en {affiliate.city || 'tu ciudad'}, invitando a los usuarios a explorar tu agenda y agendar cualquiera de tus servicios disponibles.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -607,9 +719,58 @@ export const MarketingToolsView: React.FC<Props> = ({
 
           {/* Custom instructions */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Instrucciones Personalizadas para la IA (Opcional)
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-semibold text-gray-700">
+                Instrucciones Personalizadas para la IA (Opcional)
+              </label>
+              {def.level === 5 && (
+                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  Agente WhatsApp 24/7
+                </span>
+              )}
+            </div>
+
+            {/* Quick preset chips for Level 5 */}
+            {def.level === 5 && (
+              <div className="flex flex-wrap gap-1.5 mb-2.5">
+                {[
+                  'Nutrición 24h: Confirmación y encuesta de satisfacción',
+                  'Reagendamiento inteligente si cancelan con enlace directo',
+                  'Fidelización a 30 días con bono para próxima cita',
+                  'Mensaje empático y formal de acuerdo a normas de salud'
+                ].map((preset, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setCustomInstructions(prev => prev ? `${prev}. ${preset}` : preset)}
+                    className="text-[11px] font-medium bg-gray-100 hover:bg-emerald-50 hover:text-emerald-800 text-gray-700 px-2.5 py-1 rounded-lg border border-gray-200 transition-colors"
+                  >
+                    + {preset}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Quick preset chips for Level 4 */}
+            {def.level === 4 && (
+              <div className="flex flex-wrap gap-1.5 mb-2.5">
+                {[
+                  'Cierre con urgencia: Agenda tu cita antes que se agoten los espacios de esta semana',
+                  'Tono cálido y de máxima confianza con respaldo profesional certificado',
+                  'Énfasis en precio transparente sin costos ocultos (PROFECO)'
+                ].map((preset, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setCustomInstructions(prev => prev ? `${prev}. ${preset}` : preset)}
+                    className="text-[11px] font-medium bg-gray-100 hover:bg-rose-50 hover:text-rose-800 text-gray-700 px-2.5 py-1 rounded-lg border border-gray-200 transition-colors"
+                  >
+                    + {preset}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <textarea
               value={customInstructions}
               onChange={(e) => setCustomInstructions(e.target.value)}
