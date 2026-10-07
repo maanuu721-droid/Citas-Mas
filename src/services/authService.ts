@@ -728,6 +728,8 @@ export class AuthService {
     const provider = new GoogleAuthProvider();
     provider.addScope('email');
     provider.addScope('profile');
+    // Force Google to show the official account picker / login prompt
+    provider.setCustomParameters({ prompt: 'select_account' });
 
     try {
       const result = await signInWithPopup(auth, provider);
