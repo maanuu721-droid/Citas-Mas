@@ -114,6 +114,27 @@ const VOICE_TYPES = [
   { value: 'cinematic_narrator', label: '🎙️ Narrador Cinematográfico — Grave y Profundo' },
 ];
 
+export const DISRUPTIVE_LEVELS = [
+  {
+    value: 'conservative',
+    label: '🛡️ Profesional & Seguro',
+    badge: 'Apego COFEPRIS / PROFECO',
+    description: 'Tono sobrio, médico o corporativo de máxima credibilidad y rigor legal. Sin promesas milagrosas, con total transparencia en precios MXN.'
+  },
+  {
+    value: 'persuasive',
+    label: '🎯 Persuasivo Comercial (Venta Directa)',
+    badge: 'Alta Conversión',
+    description: 'Voz estilo vendedor influyente, activa dolores del cliente, urgencia de agenda y propuesta de valor contundente.'
+  },
+  {
+    value: 'disruptive_viral',
+    label: '🔥 Disruptivo Viral Extremo (TikTok / Reels)',
+    badge: 'Retención y Viralidad',
+    description: 'Gancho agresivo de dolor en 0-3s, ruptura de patrón visual, ritmo acelerado y solución contundente para máxima exposición.'
+  },
+];
+
 // ─── ASSET STATUS BADGE ─────────────────────────────────────────────────────
 const AssetStatusBadge: React.FC<{ status: MarketingAsset['status'] }> = ({ status }) => {
   if (status === 'processing') return (
@@ -261,6 +282,7 @@ export const MarketingToolsView: React.FC<Props> = ({
   // Form fields per level
   const [selectedServiceId, setSelectedServiceId] = useState(affiliate.services?.[0]?.id || '');
   const [voiceType, setVoiceType] = useState('female_warm');
+  const [disruptiveLevel, setDisruptiveLevel] = useState<'conservative' | 'persuasive' | 'disruptive_viral'>('persuasive');
   const [customInstructions, setCustomInstructions] = useState('');
   const [selectedReferencePhotos, setSelectedReferencePhotos] = useState<string[]>([]);
 
@@ -344,6 +366,9 @@ export const MarketingToolsView: React.FC<Props> = ({
       buyerPersonas: affiliate.buyerPersonas,
       selectedService: service,
       voiceType,
+      disruptiveLevel,
+      disruptiveLabel: DISRUPTIVE_LEVELS.find(d => d.value === disruptiveLevel)?.label || 'Persuasivo Comercial',
+      affiliateBookingUrl: `https://citasmas.com?affiliate=${affiliate.id}`,
       customInstructions,
       referencePhotoUrls: selectedReferencePhotos,
       kieModel: selectedLevel.kieModel || 'grok-image-2',
@@ -482,11 +507,50 @@ export const MarketingToolsView: React.FC<Props> = ({
             </div>
           )}
 
+          {/* Nivel de Disruptividad (Level 2, 3, 4) */}
+          {(def.level === 2 || def.level === 3 || def.level === 4) && (
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-semibold text-gray-700">
+                  Nivel de Persuasión y Disruptividad
+                </label>
+                <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+                  COFEPRIS & PROFECO Compliance
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mb-2">
+                Define el tono comercial y el gancho inicial del video o anuncio publicitario.
+              </p>
+              <div className="space-y-2">
+                {DISRUPTIVE_LEVELS.map((lvl) => (
+                  <button
+                    key={lvl.value}
+                    type="button"
+                    onClick={() => setDisruptiveLevel(lvl.value as any)}
+                    className={`w-full p-3 rounded-xl border-2 text-left transition-all ${
+                      disruptiveLevel === lvl.value
+                        ? 'border-purple-600 bg-purple-50/70 shadow-xs'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-bold text-gray-900">{lvl.label}</span>
+                      <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-gray-100 text-gray-700">
+                        {lvl.badge}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 leading-snug">{lvl.description}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Voice type (Level 3 & 4) */}
           {(def.level === 3 || def.level === 4) && (
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Tipo de Voz IA para la Locución
+                Tipo de Voz IA para la Locución (Estilo Vendedor)
               </label>
               <div className="space-y-2">
                 {VOICE_TYPES.map((v) => (
