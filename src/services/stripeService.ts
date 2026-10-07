@@ -51,9 +51,9 @@ export class StripeService {
       return data;
     } catch {
       return {
-        publishableKey: 'pk_test_lSViyjTjDSaNiuLuSqZXRFLN00KFh6HAV1',
+        publishableKey: 'pk_live_juBl94na6c8tpv5B0IN1k0C200ZKABtek5',
         currency: 'mxn',
-        mode: 'test',
+        mode: 'live',
         capabilities: { checkout: true, elements: true, subscriptions: true, payouts: true }
       };
     }
