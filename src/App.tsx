@@ -1260,16 +1260,16 @@ export default function App() {
             <button onClick={() => setActiveView('dashboard')} className="hover:text-white transition-colors">
               Afiliados
             </button>
-            {/* Botón apenas visible para el Administrador General */}
+            {/* Botón Verde Circular de Acceso Administrativo */}
             <button
-              id="footer-admin-discreet-btn"
+              id="footer-admin-green-btn"
               type="button"
               onClick={() => setIsAdminAuthModalOpen(true)}
-              className="text-slate-800 hover:text-slate-600 opacity-20 hover:opacity-80 transition-opacity text-[10px] tracking-widest select-none cursor-pointer inline-flex items-center px-1 py-0.5 rounded"
-              title="Acceso administrativo"
-              aria-label="Acceso administrativo"
+              className="w-9 h-9 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white flex items-center justify-center shadow-md hover:shadow-lg transition-all hover:scale-110 cursor-pointer ml-2"
+              title="Administración General"
+              aria-label="Acceso Administrador General"
             >
-              <span className="font-mono text-[9px]">•</span>
+              <Shield className="w-4 h-4 fill-white" />
             </button>
           </div>
         </div>
