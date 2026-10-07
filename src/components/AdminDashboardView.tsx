@@ -30,7 +30,8 @@ import {
   TrendingUp,
   Award,
   LogOut,
-  Lock
+  Lock,
+  Package
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
@@ -39,7 +40,8 @@ import {
   MarketingCampaignRequest,
   SubscriptionPlanType,
   AffiliateApprovalStatus,
-  VerificationTier
+  VerificationTier,
+  PromotionOrder
 } from '../types.ts';
 import { DataService } from '../services/dataService.ts';
 
@@ -50,7 +52,7 @@ interface Props {
   onLogoutAdmin?: () => void;
 }
 
-type AdminTab = 'marketing_requests' | 'subscriptions' | 'affiliates' | 'appointments' | 'settings';
+type AdminTab = 'marketing_requests' | 'subscriptions' | 'affiliates' | 'appointments' | 'promotion_orders' | 'settings';
 
 export const AdminDashboardView: React.FC<Props> = ({
   onBackToApp,
@@ -64,8 +66,11 @@ export const AdminDashboardView: React.FC<Props> = ({
   // Core data states
   const [marketingRequests, setMarketingRequests] = useState<MarketingCampaignRequest[]>([]);
   const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
+  const [pendingAffiliates, setPendingAffiliates] = useState<Affiliate[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [expiringSubscriptions, setExpiringSubscriptions] = useState<any[]>([]);
+  const [promotionOrders, setPromotionOrders] = useState<PromotionOrder[]>([]);
+  const [newPurchaseAlert, setNewPurchaseAlert] = useState<PromotionOrder | null>(null);
   const [metrics, setMetrics] = useState({
     totalAffiliates: 0,
     pendingApprovals: 0,
@@ -82,13 +87,13 @@ export const AdminDashboardView: React.FC<Props> = ({
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [filterMarketingStatus, setFilterMarketingStatus] = useState<string>('all');
   const [customWebhookPro, setCustomWebhookPro] = useState<string>(
-    'https://n8n.webhook.citapro.mx/webhook/marketing-video-pro'
+    'https://n8n.bahiago.tech/webhook/marketing-citas-mas'
   );
   const [customWebhookPremium, setCustomWebhookPremium] = useState<string>(
-    'https://n8n.webhook.citapro.mx/webhook/marketing-cinema-4k'
+    'https://n8n.bahiago.tech/webhook/marketing-citas-mas'
   );
 
-  // Load all system data
+  // Load all system data (one-time for full lists)
   const loadDashboardData = async () => {
     try {
       setLoading(true);
@@ -114,8 +119,41 @@ export const AdminDashboardView: React.FC<Props> = ({
     }
   };
 
+  // Real-time listeners for admin-critical events
   useEffect(() => {
     loadDashboardData();
+
+    const dataService = DataService.getInstance();
+
+    // 1. Real-time: Pending affiliates awaiting approval
+    const unsubPending = dataService.subscribeToAdminPendingAffiliates((pending) => {
+      setPendingAffiliates(pending);
+      setMetrics(prev => ({ ...prev, pendingApprovals: pending.length }));
+      // Show notification if new affiliates appear
+      if (pending.length > 0) {
+        showToast(`🔔 ${pending.length} afiliado(s) esperando aprobación`, 'info');
+      }
+    });
+
+    // 2. Real-time: Promotion package purchases
+    const unsubOrders = dataService.subscribeToPromotionOrders((orders) => {
+      const prevCount = promotionOrders.length;
+      setPromotionOrders(orders);
+      // Alert for new purchases
+      if (orders.length > prevCount && prevCount > 0) {
+        const newest = orders[0];
+        setNewPurchaseAlert(newest);
+        setTimeout(() => setNewPurchaseAlert(null), 8000);
+        showToast(`💳 Nueva compra: ${newest.packageName} — $${newest.priceMxn} MXN`, 'success');
+        try { confetti({ particleCount: 60, spread: 45, origin: { y: 0.3 } }); } catch(_) {}
+      }
+    });
+
+    return () => {
+      unsubPending();
+      unsubOrders();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const showToast = (text: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -425,7 +463,11 @@ export const AdminDashboardView: React.FC<Props> = ({
               <span className="text-[11px] font-medium text-slate-400 block">Afiliados Totales</span>
               <div className="flex items-baseline space-x-2">
                 <span className="text-xl font-black text-white">{metrics.totalAffiliates}</span>
-                <span className="text-[10px] text-emerald-400 font-medium">100% Directorio</span>
+                {pendingAffiliates.length > 0 && (
+                  <span className="text-[10px] bg-rose-950 text-rose-400 font-bold px-1.5 py-0.5 rounded border border-rose-800 animate-pulse">
+                    {pendingAffiliates.length} aprobación
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -444,6 +486,27 @@ export const AdminDashboardView: React.FC<Props> = ({
           </div>
         </section>
 
+        {/* 🆕 New purchase real-time alert banner */}
+        {newPurchaseAlert && (
+          <div className="bg-gradient-to-r from-emerald-950/90 to-slate-900 border border-emerald-700/60 rounded-2xl px-5 py-4 flex items-center justify-between gap-3 animate-in slide-in-from-top-2 duration-300">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center shrink-0">
+                <Package className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-white font-black text-sm">💳 ¡Nueva Compra de Paquete de Exposición!</p>
+                <p className="text-emerald-300 text-xs">{newPurchaseAlert.packageName} — <strong>${newPurchaseAlert.priceMxn.toLocaleString()} MXN</strong> · {newPurchaseAlert.affiliateName}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setActiveTab('promotion_orders')}
+              className="shrink-0 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-black rounded-xl transition-all"
+            >
+              Ver ›
+            </button>
+          </div>
+        )}
+
         {/* Navigation Tabs */}
         <div className="flex border-b border-slate-800 overflow-x-auto scrollbar-none gap-2">
           <button
@@ -456,7 +519,7 @@ export const AdminDashboardView: React.FC<Props> = ({
             }`}
           >
             <Zap className="w-4 h-4" />
-            <span>Campañas Pro ($550) & Premium ($1,250)</span>
+            <span>Campañas Pro & Premium</span>
             {metrics.pendingMarketingRequests > 0 && (
               <span className="bg-amber-400 text-slate-950 text-[10px] font-black px-1.5 py-0.2 rounded-full">
                 {metrics.pendingMarketingRequests}
@@ -474,7 +537,7 @@ export const AdminDashboardView: React.FC<Props> = ({
             }`}
           >
             <Clock className="w-4 h-4" />
-            <span>Vencimiento de Planes & WhatsApp Automático</span>
+            <span>Vencimiento de Planes & WhatsApp</span>
             {metrics.expiringPlansCount > 0 && (
               <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full">
                 {metrics.expiringPlansCount}
@@ -492,7 +555,30 @@ export const AdminDashboardView: React.FC<Props> = ({
             }`}
           >
             <Users className="w-4 h-4" />
-            <span>Afiliados & Verificación SEP</span>
+            <span>Afiliados & Verificación</span>
+            {pendingAffiliates.length > 0 && (
+              <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full animate-pulse">
+                {pendingAffiliates.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('promotion_orders')}
+            className={`px-4 py-3 text-xs sm:text-sm font-bold flex items-center space-x-2 border-b-2 transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'promotion_orders'
+                ? 'border-emerald-400 text-emerald-400 bg-slate-900/40'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Package className="w-4 h-4" />
+            <span>Paquetes de Exposición</span>
+            {promotionOrders.filter(o => o.status === 'paid').length > 0 && (
+              <span className="bg-emerald-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full">
+                {promotionOrders.filter(o => o.status === 'paid').length}
+              </span>
+            )}
           </button>
 
           <button
@@ -505,7 +591,7 @@ export const AdminDashboardView: React.FC<Props> = ({
             }`}
           >
             <Calendar className="w-4 h-4" />
-            <span>Auditoría Global de Citas</span>
+            <span>Auditoría de Citas</span>
           </button>
 
           <button
@@ -521,6 +607,84 @@ export const AdminDashboardView: React.FC<Props> = ({
             <span>Automatizaciones</span>
           </button>
         </div>
+
+        {/* ====================================================================
+            TAB: PAQUETES DE EXPOSICIÓN EN REDES SOCIALES
+            ==================================================================== */}
+        {activeTab === 'promotion_orders' && (
+          <div className="space-y-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-black text-white">Paquetes de Exposición Vendidos</h2>
+                <p className="text-sm text-slate-400">Historial en tiempo real de todas las compras de paquetes de exposición en redes sociales.</p>
+              </div>
+              <div className="flex gap-3 text-center">
+                {[1, 2, 3].map(level => {
+                  const levelNames = { 1: 'Impulso $300', 2: 'Expansión $600', 3: 'Dominación $1,500' };
+                  const count = promotionOrders.filter(o => o.packageLevel === level).length;
+                  return (
+                    <div key={level} className="bg-slate-800 rounded-xl p-3 min-w-[90px]">
+                      <p className="text-2xl font-black text-white">{count}</p>
+                      <p className="text-[10px] text-slate-400 font-medium">{levelNames[level as 1|2|3]}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {promotionOrders.length === 0 ? (
+              <div className="bg-slate-900/40 p-12 text-center rounded-3xl border border-slate-800">
+                <Package className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+                <h3 className="text-base font-bold text-white">Aún no hay compras de paquetes</h3>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1">
+                  Cuando un afiliado compre un paquete de exposición ($300, $600 o $1,500 MXN), aparecerá aquí en tiempo real con una notificación.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {promotionOrders.map(order => {
+                  const levelColors = {
+                    1: 'from-blue-900/60 border-blue-700/40 text-blue-300',
+                    2: 'from-purple-900/60 border-purple-700/40 text-purple-300',
+                    3: 'from-amber-900/60 border-amber-700/40 text-amber-300',
+                  };
+                  const statusColors = {
+                    pending_payment: 'bg-slate-700 text-slate-300',
+                    paid: 'bg-emerald-900/60 text-emerald-400 border border-emerald-700',
+                    active: 'bg-blue-900/60 text-blue-400 border border-blue-700',
+                    completed: 'bg-slate-700 text-slate-300',
+                    refunded: 'bg-red-900/60 text-red-400 border border-red-700',
+                  };
+                  return (
+                    <div key={order.id} className={`bg-gradient-to-r ${levelColors[order.packageLevel] || 'from-slate-900/60 border-slate-700/40 text-slate-300'} bg-slate-900/80 rounded-2xl border p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3`}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                          <Package className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <p className="font-black text-white text-sm">{order.packageName}</p>
+                          <p className="text-xs text-slate-400">{order.affiliateName} · {order.affiliatePhone}</p>
+                          <p className="text-xs text-slate-500">{new Date(order.createdAt).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <p className="text-lg font-black text-white">${order.priceMxn.toLocaleString()} MXN</p>
+                          {order.totalViews !== undefined && (
+                            <p className="text-xs text-slate-400">{order.totalViews?.toLocaleString()} vistas · {order.totalClicks} clics</p>
+                          )}
+                        </div>
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${statusColors[order.status] || 'bg-slate-700 text-slate-300'}`}>
+                          {order.status === 'paid' ? '✅ Pagado' : order.status === 'active' ? '🟢 Activo' : order.status === 'pending_payment' ? '⏳ Pendiente' : order.status === 'refunded' ? '↩️ Reembolso' : order.status}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ====================================================================
             TAB 1: MARKETING CAMPAIGNS (PRO $550 & PREMIUM $1250)
