@@ -373,9 +373,9 @@ export const AffiliateOnboardingModal: React.FC<Props> = ({
             businessName: finalBusinessName,
             category,
             categoryLabel: categoryLabel || resolveCategory(category)?.label || selectedCatObj?.label || 'Servicios Profesionales',
-            state: selectedStateObj.name,
-            city,
-            address: address.trim() || `${city}, ${selectedStateObj.name}`
+            state: stateName.trim() || 'Principal',
+            city: cityName.trim() || 'Principal',
+            address: streetAddress.trim() || `${cityName.trim()}, ${stateName.trim()}`
           });
           activeUser = res.user;
         } catch (regErr: any) {
