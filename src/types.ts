@@ -488,3 +488,79 @@ export interface MexicanState {
   lat: number;
   lng: number;
 }
+
+// ========================================================
+// MARKETING ASSETS — 5-LEVEL KIE.AI + DEEPSEEK SYSTEM
+// ========================================================
+
+export type MarketingLevelType = 1 | 2 | 3 | 4 | 5;
+
+export type KieAiModel =
+  | 'grok-image-2'            // Text-to-Image (flyer generation)
+  | 'grok-image-to-image'     // Image-to-Image with reference photos
+  | 'grok-video-1.5'          // Image-to-Video animation
+  | 'grok-image-to-video';    // Image reference to video
+
+export type MarketingAssetType =
+  | 'buyer_personas'            // Level 1
+  | 'flyer_image'               // Level 2 — Grok Image 2 text-to-image
+  | 'flyer_with_reference'      // Level 2 — Grok Image-to-Image with user photo
+  | 'animated_video'            // Level 3 — Grok Video 1.5
+  | 'cinematic_video'           // Level 4 — Grok Image-to-Video cinematic 1 min
+  | 'whatsapp_agent';           // Level 5 — DeepSeek + Twilio
+
+export interface MarketingAsset {
+  id: string;
+  affiliateId: string;
+  level: MarketingLevelType;
+  assetType: MarketingAssetType;
+  kieModel?: KieAiModel;
+  title: string;
+  description?: string;
+  mediaUrl?: string;           // Final rendered URL (image or video)
+  thumbnailUrl?: string;       // Preview thumbnail
+  audioUrl?: string;           // Voice-over audio URL (Level 3)
+  copyText?: string;           // DeepSeek-generated copy
+  prompt?: string;             // DeepSeek-generated visual prompt sent to Kie.ai
+  serviceId?: string;          // Which service this campaign targets
+  serviceName?: string;
+  voiceType?: string;          // 'female_warm' | 'male_professional' | 'cinematic_narrator'
+  referencePhotoUrls?: string[]; // User-selected gallery photos as reference for Grok Image-to-Image
+  status: 'processing' | 'ready' | 'error';
+  errorMessage?: string;
+  addedToLanding: boolean;     // Whether it was published to public landing page
+  includedMonthly: boolean;    // Was it the free monthly cinematic video?
+  createdAt: string;
+  readyAt?: string;
+  n8nExecutionId?: string;
+}
+
+// ========================================================
+// PROMOTION ORDERS — EXPOSURE PACKAGES ($300, $600, $1500)
+// ========================================================
+
+export type ExposurePackageLevel = 1 | 2 | 3;
+
+export interface PromotionOrder {
+  id: string;
+  affiliateId: string;
+  affiliateName: string;
+  affiliatePhone: string;
+  packageLevel: ExposurePackageLevel;
+  packageName: string;        // "Impulso Redes", "Expansión Redes", "Dominación Total"
+  priceMxn: number;           // 300 | 600 | 1500
+  currency: 'mxn';
+  stripeSessionId?: string;
+  stripePaymentIntentId?: string;
+  stripeReceiptUrl?: string;
+  status: 'pending_payment' | 'paid' | 'active' | 'completed' | 'refunded';
+  activatedAt?: string;
+  expiresAt?: string;
+  // Analytics
+  estimatedReach?: number;
+  totalViews?: number;
+  totalClicks?: number;
+  appointmentsFromCampaign?: number;
+  createdAt: string;
+  updatedAt: string;
+}
