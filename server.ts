@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
@@ -8,11 +8,17 @@ import Stripe from 'stripe';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Initialize Stripe clients with credentials
-const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || 'sk_test_ujTsBZpqnEku8x0ty6wDbq9z00KP9gKdBv';
-const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY || 'pk_test_lSViyjTjDSaNiuLuSqZXRFLN00KFh6HAV1';
-const STRIPE_SUBSCRIPTION_KEY = process.env.STRIPE_SUBSCRIPTION_KEY || 'rk_test_51EZ5OgIbtSZx9R0I9yx0QBLD3Qo829MRee7OmrzEapnEq7H3rdnAXN73yWBVlZFQFASHDOy0wLSwNwnhCb8PDwtH00jlTynsfV';
-const STRIPE_GENERAL_RESTRICTED_KEY = process.env.STRIPE_GENERAL_RESTRICTED_KEY || 'rk_test_51EZ5OgIbtSZx9R0IclznvmomXpnP48Hsbogb9Xox46gh5m9BHqbjhJfX7XTr3pIdhysVWisbf4UUEs8uofbQckTc00kvGwUAeM';
+// Initialize Stripe clients with LIVE credentials (env vars take priority)
+// NOTE: Keys must be set as environment variables on the VPS — never commit secrets to git.
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || '';
+const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY || 'pk_live_juBl94na6c8tpv5B0IN1k0C200ZKABtek5';
+const STRIPE_SUBSCRIPTION_KEY = process.env.STRIPE_SUBSCRIPTION_KEY || STRIPE_SECRET_KEY;
+const STRIPE_GENERAL_RESTRICTED_KEY = process.env.STRIPE_GENERAL_RESTRICTED_KEY || STRIPE_SECRET_KEY;
+
+// External AI API Keys
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-cf162528184047e8a46e90a388ab90d6';
+const KIE_AI_API_KEY = process.env.KIE_AI_API_KEY || 'f55354afcfb4884b77b501d1b5e91d37';
+const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || 'https://n8n.bahiago.tech/webhook/marketing-citas-mas';
 
 const stripe = new Stripe(STRIPE_SECRET_KEY);
 const stripeSubscriptions = new Stripe(STRIPE_SUBSCRIPTION_KEY);
@@ -214,7 +220,7 @@ Genera un JSON estricto con:
     res.json({
       publishableKey: STRIPE_PUBLISHABLE_KEY,
       currency: 'mxn',
-      mode: 'test',
+      mode: STRIPE_SECRET_KEY.startsWith('sk_live') ? 'live' : 'test',
       capabilities: {
         checkout: true,
         elements: true,
@@ -222,6 +228,163 @@ Genera un JSON estricto con:
         payouts: true
       }
     });
+  });
+
+  // Promotion Package Checkout — Creates a Stripe session for $300/$600/$1500 exposure packages
+  app.post('/api/stripe/exposure-package-checkout', async (req, res) => {
+    try {
+      const { packageLevel, affiliateId, affiliateName, affiliatePhone, originUrl } = req.body;
+      if (!packageLevel || !affiliateId) {
+        return res.status(400).json({ error: 'Faltan parámetros: packageLevel y affiliateId son requeridos.' });
+      }
+
+      const PACKAGE_NAMES: Record<number, string> = {
+        1: 'Paquete Impulso Redes — Exposición Básica',
+        2: 'Paquete Expansión Redes — Alcance Geolocalizado',
+        3: 'Paquete Dominación Total — Máxima Exposición',
+      };
+      const PACKAGE_PRICES: Record<number, number> = { 1: 30000, 2: 60000, 3: 150000 }; // centavos MXN
+
+      const priceInCentavos = PACKAGE_PRICES[packageLevel];
+      const packageName = PACKAGE_NAMES[packageLevel];
+
+      if (!priceInCentavos) {
+        return res.status(400).json({ error: `Nivel de paquete inválido: ${packageLevel}` });
+      }
+
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [{
+          price_data: {
+            currency: 'mxn',
+            unit_amount: priceInCentavos,
+            product_data: {
+              name: packageName,
+              description: `Exposición intensiva en redes sociales para ${affiliateName || 'Afiliado CitasMás'} — Plataforma CitasMás.com`,
+            },
+          },
+          quantity: 1,
+        }],
+        mode: 'payment',
+        success_url: `${originUrl || 'https://citasmas.com'}?payment=success&package=${packageLevel}&affiliate=${affiliateId}`,
+        cancel_url: `${originUrl || 'https://citasmas.com'}?payment=cancelled`,
+        metadata: {
+          affiliateId,
+          affiliateName: affiliateName || '',
+          affiliatePhone: affiliatePhone || '',
+          packageLevel: String(packageLevel),
+          packageName,
+          source: 'citasmas_exposure_package',
+        },
+      });
+
+      return res.json({ success: true, sessionId: session.id, url: session.url });
+    } catch (err: any) {
+      console.error('Error creating exposure package checkout:', err);
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // DeepSeek Proxy — Text generation for marketing copy and prompts
+  app.post('/api/ai/deepseek', async (req, res) => {
+    try {
+      const { messages, systemPrompt, maxTokens = 1500, temperature = 0.7 } = req.body;
+      if (!messages || !Array.isArray(messages)) {
+        return res.status(400).json({ error: 'messages array is required.' });
+      }
+
+      const allMessages = systemPrompt
+        ? [{ role: 'system', content: systemPrompt }, ...messages]
+        : messages;
+
+      const response = await fetch('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: allMessages,
+          max_tokens: maxTokens,
+          temperature,
+        }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error('[DeepSeek] API error:', errText);
+        return res.status(502).json({ error: 'DeepSeek API error', details: errText });
+      }
+
+      const data = await response.json();
+      return res.json({
+        success: true,
+        content: data.choices?.[0]?.message?.content || '',
+        usage: data.usage,
+      });
+    } catch (err: any) {
+      console.error('[DeepSeek] Proxy error:', err);
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Kie.ai Proxy — Image and Video generation (Grok Image 2, Image-to-Image, Video 1.5, Image-to-Video)
+  app.post('/api/ai/kie', async (req, res) => {
+    try {
+      const {
+        model = 'grok-image-2',
+        prompt,
+        referenceImageUrls = [],
+        aspectRatio = '9:16',
+        duration = 15,
+        style = 'cinematic',
+      } = req.body;
+
+      if (!prompt) {
+        return res.status(400).json({ error: 'prompt is required.' });
+      }
+
+      // Kie.ai API endpoint determination based on model
+      let kieEndpoint = 'https://api.kie.ai/v1/images/generate';
+      let kiePayload: any = { prompt, aspect_ratio: aspectRatio };
+
+      if (model === 'grok-image-to-image' && referenceImageUrls.length > 0) {
+        kieEndpoint = 'https://api.kie.ai/v1/images/edit';
+        kiePayload = { prompt, image_urls: referenceImageUrls, aspect_ratio: aspectRatio };
+      } else if (model === 'grok-video-1.5' || model === 'grok-image-to-video') {
+        kieEndpoint = 'https://api.kie.ai/v1/videos/generate';
+        kiePayload = {
+          prompt,
+          model,
+          duration,
+          aspect_ratio: aspectRatio,
+          style,
+          ...(referenceImageUrls.length > 0 ? { reference_image_urls: referenceImageUrls } : {}),
+        };
+      }
+
+      const response = await fetch(kieEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${KIE_AI_API_KEY}`,
+        },
+        body: JSON.stringify({ model, ...kiePayload }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error('[Kie.ai] API error:', errText);
+        return res.status(502).json({ error: 'Kie.ai API error', details: errText });
+      }
+
+      const data = await response.json();
+      return res.json({ success: true, result: data });
+    } catch (err: any) {
+      console.error('[Kie.ai] Proxy error:', err);
+      return res.status(500).json({ error: err.message });
+    }
   });
 
   // 2. Stripe Live Health and Balance Status
