@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Affiliate, SubscriptionPlanType, ServiceItem } from '../types.ts';
 import { DataService } from '../services/dataService.ts';
 import { StripeService } from '../services/stripeService.ts';
@@ -63,8 +63,8 @@ const PLANS_CONFIG: PlanDefinition[] = [
   {
     id: 'basico',
     name: 'Plan Básico',
-    monthlyPrice: 179,
-    annualMonthlyPrice: 149,
+    monthlyPrice: 239,
+    annualMonthlyPrice: 199,
     description: 'Para profesionales independientes que buscan agendar y promoverse sin complicaciones.',
     features: [
       '1 Video publicitario de 1 minuto producido con IA',
@@ -80,8 +80,8 @@ const PLANS_CONFIG: PlanDefinition[] = [
   {
     id: 'pro',
     name: 'Plan Pro',
-    monthlyPrice: 359,
-    annualMonthlyPrice: 299,
+    monthlyPrice: 469,
+    annualMonthlyPrice: 389,
     description: 'El plan más popular para profesionales con alto flujo y exposición en redes.',
     badge: 'Recomendado',
     features: [
@@ -98,8 +98,8 @@ const PLANS_CONFIG: PlanDefinition[] = [
   {
     id: 'equipo',
     name: 'Plan Equipo',
-    monthlyPrice: 869,
-    annualMonthlyPrice: 724,
+    monthlyPrice: 1139,
+    annualMonthlyPrice: 949,
     description: 'Para clínicas, estéticas o consultorios con múltiples profesionales.',
     badge: 'Más Completo',
     features: [
@@ -640,19 +640,19 @@ export const PlanCheckoutModal: React.FC<PlanCheckoutModalProps> = ({
                             {
                               lvl: 1 as const,
                               name: 'Turbo 1',
-                              price: 200,
+                              price: 260,
                               desc: 'Impulso express en redes sociales'
                             },
                             {
                               lvl: 2 as const,
                               name: 'Turbo 2',
-                              price: 700,
+                              price: 910,
                               desc: 'Impulso medio con geolocalización'
                             },
                             {
                               lvl: 3 as const,
                               name: 'Turbo 3',
-                              price: 1500,
+                              price: 1950,
                               desc: 'Máxima exposición #1 e insignia dorada'
                             }
                           ].map((t) => (

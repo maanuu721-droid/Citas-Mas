@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Affiliate, Appointment, SubscriptionPlanType, ServiceItem } from '../types.ts';
 import { DataService } from '../services/dataService.ts';
 import { StripeService, StripePayoutItem } from '../services/stripeService.ts';
@@ -2279,7 +2279,7 @@ export const AffiliateDashboardView: React.FC<Props> = ({
                   </div>
                   <div className="mt-3">
                     <span className="text-2xl font-black text-slate-900">
-                      ${billingCycle === 'annual' ? '149' : '179'}
+                      ${billingCycle === 'annual' ? '199' : '239'}
                     </span>
                     <span className="text-xs text-slate-600"> MXN/mes</span>
                   </div>
@@ -2330,7 +2330,7 @@ export const AffiliateDashboardView: React.FC<Props> = ({
                   }`}
                 >
                   {selectedPlanTab === 'basico'
-                    ? `Pagar Plan Básico ($${billingCycle === 'annual' ? '149' : '179'} MXN)`
+                    ? `Pagar Plan Básico ($${billingCycle === 'annual' ? '199' : '239'} MXN)`
                     : 'Elegir y Pagar Básico'}
                 </button>
               </div>
@@ -2364,7 +2364,7 @@ export const AffiliateDashboardView: React.FC<Props> = ({
                   </div>
                   <div className="mt-3">
                     <span className="text-2xl font-black text-slate-900">
-                      ${billingCycle === 'annual' ? '299' : '359'}
+                      ${billingCycle === 'annual' ? '389' : '469'}
                     </span>
                     <span className="text-xs text-slate-600"> MXN/mes</span>
                   </div>
@@ -2381,7 +2381,7 @@ export const AffiliateDashboardView: React.FC<Props> = ({
                     </li>
                     <li className="flex items-center space-x-1.5">
                       <span className="text-amber-500 font-bold">⚡</span>
-                      <span><strong>Activa Turbo Redes:</strong> Turbo 1 (+$200), Turbo 2 (+$700), Turbo 3 (+$1500)</span>
+                      <span><strong>Activa Turbo Redes:</strong> Turbo 1 (+$260), Turbo 2 (+$910), Turbo 3 (+$1950)</span>
                     </li>
                     <li className="flex items-center space-x-1.5">
                       <span className="text-emerald-600 font-bold">✓</span>
@@ -2414,7 +2414,7 @@ export const AffiliateDashboardView: React.FC<Props> = ({
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>
                       {selectedPlanTab === 'pro'
-                        ? `Pagar Plan Pro ($${billingCycle === 'annual' ? '299' : '359'} MXN)`
+                        ? `Pagar Plan Pro ($${billingCycle === 'annual' ? '389' : '469'} MXN)`
                         : 'Elegir y Pagar Pro'}
                     </span>
                   </button>
@@ -2451,7 +2451,7 @@ export const AffiliateDashboardView: React.FC<Props> = ({
                   </div>
                   <div className="mt-3">
                     <span className="text-2xl font-black text-slate-900">
-                      ${billingCycle === 'annual' ? '724' : '869'}
+                      ${billingCycle === 'annual' ? '949' : '1139'}
                     </span>
                     <span className="text-xs text-slate-600"> MXN/mes</span>
                   </div>
@@ -2489,7 +2489,7 @@ export const AffiliateDashboardView: React.FC<Props> = ({
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>
                       {selectedPlanTab === 'equipo'
-                        ? `Pagar Plan Equipo ($${billingCycle === 'annual' ? '724' : '869'} MXN)`
+                        ? `Pagar Plan Equipo ($${billingCycle === 'annual' ? '949' : '1139'} MXN)`
                         : 'Elegir y Pagar Equipo'}
                     </span>
                   </button>
@@ -2616,7 +2616,7 @@ export const AffiliateDashboardView: React.FC<Props> = ({
                   <div className="flex justify-between items-center">
                     <span className="font-black text-sm text-slate-900">Turbo 1</span>
                     <span className="text-xs font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
-                      +$200 MXN/mes
+                      +$260 MXN/mes
                     </span>
                   </div>
                   <h4 className="text-xs font-bold text-slate-800 mt-2">Impulso Express Redes</h4>
@@ -2646,7 +2646,7 @@ export const AffiliateDashboardView: React.FC<Props> = ({
                       : 'bg-slate-900 text-white hover:bg-slate-800'
                   }`}
                 >
-                  Pagar Turbo 1 ($200 MXN)
+                  Pagar Turbo 1 ($260 MXN)
                 </button>
               </div>
 
@@ -2663,7 +2663,7 @@ export const AffiliateDashboardView: React.FC<Props> = ({
                   <div className="flex justify-between items-center">
                     <span className="font-black text-sm text-slate-900">Turbo 2</span>
                     <span className="text-xs font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
-                      +$700 MXN/mes
+                      +$910 MXN/mes
                     </span>
                   </div>
                   <h4 className="text-xs font-bold text-slate-800 mt-2">Alcance Geolocalizado</h4>
@@ -2697,7 +2697,7 @@ export const AffiliateDashboardView: React.FC<Props> = ({
                       : 'bg-slate-900 text-white hover:bg-slate-800'
                   }`}
                 >
-                  Pagar Turbo 2 ($700 MXN)
+                  Pagar Turbo 2 ($910 MXN)
                 </button>
               </div>
 
@@ -2719,7 +2719,7 @@ export const AffiliateDashboardView: React.FC<Props> = ({
                       </span>
                     </div>
                     <span className="text-xs font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
-                      +$1,500 MXN/mes
+                      +$1,950 MXN/mes
                     </span>
                   </div>
                   <h4 className="text-xs font-bold text-slate-800 mt-2">Posición #1 & Máxima Exposición</h4>
@@ -2753,7 +2753,7 @@ export const AffiliateDashboardView: React.FC<Props> = ({
                       : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
                   }`}
                 >
-                  Pagar Turbo 3 ($1,500 MXN)
+                  Pagar Turbo 3 ($1,950 MXN)
                 </button>
               </div>
             </div>

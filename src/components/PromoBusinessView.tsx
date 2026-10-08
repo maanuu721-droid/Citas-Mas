@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Affiliate, SubscriptionPlanType } from '../types.ts';
 import { PlanCheckoutModal } from './PlanCheckoutModal.tsx';
 import {
@@ -447,7 +447,7 @@ export const PromoBusinessView: React.FC<Props> = ({
 
               <div className="mt-3">
                 <span className="text-3xl font-black text-slate-900">
-                  ${billingCycle === 'annual' ? '149' : '179'}
+                  ${billingCycle === 'annual' ? '199' : '239'}
                 </span>
                 <span className="text-xs text-slate-500"> MXN/m</span>
               </div>
@@ -498,7 +498,7 @@ export const PromoBusinessView: React.FC<Props> = ({
               }`}
             >
               {selectedPlan === 'basico'
-                ? `Pagar Plan Básico ($${billingCycle === 'annual' ? '149' : '179'} MXN)`
+                ? `Pagar Plan Básico ($${billingCycle === 'annual' ? '199' : '239'} MXN)`
                 : 'Elegir y Pagar Básico'}
             </button>
           </div>
@@ -535,7 +535,7 @@ export const PromoBusinessView: React.FC<Props> = ({
 
               <div className="mt-3">
                 <span className="text-3xl font-black text-slate-900">
-                  ${billingCycle === 'annual' ? '299' : '359'}
+                  ${billingCycle === 'annual' ? '389' : '469'}
                 </span>
                 <span className="text-xs text-slate-500"> MXN/m</span>
               </div>
@@ -552,7 +552,7 @@ export const PromoBusinessView: React.FC<Props> = ({
                 </li>
                 <li className="flex items-center space-x-2">
                   <Zap className="w-4 h-4 text-amber-500 shrink-0" />
-                  <span><strong>Activa Turbo:</strong> Turbo 1 (+$200), Turbo 2 (+$700), Turbo 3 (+$1500)</span>
+                  <span><strong>Activa Turbo:</strong> Turbo 1 (+$260), Turbo 2 (+$910), Turbo 3 (+$1950)</span>
                 </li>
                 <li className="flex items-center space-x-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -582,7 +582,7 @@ export const PromoBusinessView: React.FC<Props> = ({
               className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-xs shadow-md transition-all cursor-pointer"
             >
               {selectedPlan === 'pro'
-                ? `Pagar Plan Pro ($${billingCycle === 'annual' ? '299' : '359'} MXN)`
+                ? `Pagar Plan Pro ($${billingCycle === 'annual' ? '389' : '469'} MXN)`
                 : 'Elegir y Pagar Pro'}
             </button>
           </div>
@@ -615,7 +615,7 @@ export const PromoBusinessView: React.FC<Props> = ({
 
               <div className="mt-3">
                 <span className="text-3xl font-black text-slate-900">
-                  ${billingCycle === 'annual' ? '724' : '869'}
+                  ${billingCycle === 'annual' ? '949' : '1139'}
                 </span>
                 <span className="text-xs text-slate-500"> MXN/m</span>
               </div>
@@ -658,7 +658,7 @@ export const PromoBusinessView: React.FC<Props> = ({
               }`}
             >
               {selectedPlan === 'equipo'
-                ? `Pagar Plan Equipo ($${billingCycle === 'annual' ? '724' : '869'} MXN)`
+                ? `Pagar Plan Equipo ($${billingCycle === 'annual' ? '949' : '1139'} MXN)`
                 : 'Elegir y Pagar Equipo'}
             </button>
           </div>
@@ -744,7 +744,7 @@ export const PromoBusinessView: React.FC<Props> = ({
           <div className="flex items-center space-x-2">
             <Zap className="w-5 h-5 text-amber-600 fill-current shrink-0" />
             <span>
-              <strong>Activa Turbo en Redes Sociales:</strong> Elige Turbo 1 (+$200), Turbo 2 (+$700) o Turbo 3 (+$1,500 MXN). Máxima prioridad en mapa GPS, distintivo dorado y anuncios de alto impacto.
+              <strong>Activa Turbo en Redes Sociales:</strong> Elige Turbo 1 (+$260), Turbo 2 (+$910) o Turbo 3 (+$1,950 MXN). Máxima prioridad en mapa GPS, distintivo dorado y anuncios de alto impacto.
             </span>
           </div>
           <button
@@ -755,7 +755,7 @@ export const PromoBusinessView: React.FC<Props> = ({
             }}
             className="bg-slate-950 hover:bg-slate-900 text-amber-400 px-5 py-2.5 rounded-xl font-black text-xs whitespace-nowrap shadow-sm cursor-pointer"
           >
-            Elegir y Pagar Turbo (desde $200)
+            Elegir y Pagar Turbo (desde $260)
           </button>
         </div>
 
