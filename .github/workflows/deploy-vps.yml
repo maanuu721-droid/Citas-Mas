@@ -1,0 +1,123 @@
+name: Deploy & Configure VPS Server
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'full_setup'
+        type: choice
+        options:
+          - full_setup
+          - restart_only
+          - update_and_restart
+
+jobs:
+  configure-vps:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa 2>/dev/null || true
+          chmod 600 ~/.ssh/id_rsa 2>/dev/null || true
+          ssh-keyscan -H 77.243.85.41 >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Full VPS Setup via SSH (password auth)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 77.243.85.41
+          username: root
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          timeout: 300s
+          script_stop: false
+          script: |
+            echo "=== CitasMás VPS Setup ==="
+            echo "Date: $(date)"
+
+            # 1. Update package lists
+            apt-get update -qq 2>&1 | tail -2
+
+            # 2. Install Node.js 20 if not present
+            if ! command -v node &>/dev/null; then
+              echo "Installing Node.js 20..."
+              curl -fsSL https://deb.nodesource.com/setup_20.x | bash - 2>&1 | tail -3
+              apt-get install -y nodejs 2>&1 | tail -3
+            fi
+            echo "Node: $(node --version)"
+
+            # 3. Install PM2 + ts-node globally
+            npm install -g pm2 ts-node typescript 2>&1 | tail -3
+            echo "PM2: $(pm2 --version)"
+
+            # 4. Clone or update repo
+            if [ -d /root/Citas-Mas/.git ]; then
+              echo "Updating existing repo..."
+              cd /root/Citas-Mas
+              git remote set-url origin "https://${{ secrets.GH_PAT }}@github.com/maanuu721-droid/Citas-Mas.git"
+              git fetch origin main
+              git reset --hard origin/main
+            else
+              echo "Cloning repo..."
+              cd /root
+              git clone "https://${{ secrets.GH_PAT }}@github.com/maanuu721-droid/Citas-Mas.git"
+            fi
+
+            # 5. Install npm dependencies
+            cd /root/Citas-Mas
+            npm install 2>&1 | tail -5
+
+            # 6. Create .env file
+            cat > /root/Citas-Mas/.env << 'ENVEOF'
+            NODE_ENV=production
+            PORT=3001
+            STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+            STRIPE_PUBLISHABLE_KEY=pk_live_51Ue3CSK0YlOOixVDEyxAk408xePio2UamtW2e0XXgjQdUXvezs7ds9eyeCxmiqpDw25SkozZCxDgPjGCOgvFm3Tl00XKhVhB7K
+            VITE_STRIPE_PUBLISHABLE_KEY=pk_live_51Ue3CSK0YlOOixVDEyxAk408xePio2UamtW2e0XXgjQdUXvezs7ds9eyeCxmiqpDw25SkozZCxDgPjGCOgvFm3Tl00XKhVhB7K
+            DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }}
+            KIE_AI_API_KEY=${{ secrets.KIE_AI_API_KEY }}
+            N8N_WEBHOOK_URL=https://n8n.bahiago.tech/webhook/marketing-citas-mas
+            ENVEOF
+            echo ".env created"
+
+            # 7. Create PM2 ecosystem
+            mkdir -p /root/logs
+            cat > /root/Citas-Mas/ecosystem.config.cjs << 'PM2EOF'
+            module.exports = {
+              apps: [{
+                name: 'citasmas-server',
+                script: './server.ts',
+                interpreter: 'node',
+                interpreter_args: '--loader ts-node/esm',
+                cwd: '/root/Citas-Mas',
+                env_file: '/root/Citas-Mas/.env',
+                env: { NODE_ENV: 'production', PORT: 3001 },
+                instances: 1,
+                autorestart: true,
+                watch: false,
+                max_memory_restart: '400M',
+                error_file: '/root/logs/citasmas-error.log',
+                out_file: '/root/logs/citasmas-out.log'
+              }]
+            }
+            PM2EOF
+
+            # 8. Start/restart PM2 process
+            pm2 delete citasmas-server 2>/dev/null || true
+            pm2 start /root/Citas-Mas/ecosystem.config.cjs
+            pm2 save
+            pm2 startup systemd -u root --hp /root 2>/dev/null || true
+
+            # 9. Verify
+            echo ""
+            echo "=== FINAL STATUS ==="
+            pm2 list
+            echo ""
+            sleep 3
+            ss -tlnp | grep 3001 || echo "Server starting on port 3001..."
+            pm2 logs citasmas-server --lines 10 --nostream 2>/dev/null || true

@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -11,13 +12,13 @@ const __dirname = path.dirname(__filename);
 // Initialize Stripe clients with LIVE credentials (env vars take priority)
 // NOTE: Keys must be set as environment variables on the VPS — never commit secrets to git.
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || '';
-const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY || 'pk_live_juBl94na6c8tpv5B0IN1k0C200ZKABtek5';
+const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY || 'pk_live_51Ue3CSK0YlOOixVDEyxAk408xePio2UamtW2e0XXgjQdUXvezs7ds9eyeCxmiqpDw25SkozZCxDgPjGCOgvFm3Tl00XKhVhB7K';
 const STRIPE_SUBSCRIPTION_KEY = process.env.STRIPE_SUBSCRIPTION_KEY || STRIPE_SECRET_KEY;
 const STRIPE_GENERAL_RESTRICTED_KEY = process.env.STRIPE_GENERAL_RESTRICTED_KEY || STRIPE_SECRET_KEY;
 
 // External AI API Keys
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-cf162528184047e8a46e90a388ab90d6';
-const KIE_AI_API_KEY = process.env.KIE_AI_API_KEY || 'f55354afcfb4884b77b501d1b5e91d37';
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
+const KIE_AI_API_KEY = process.env.KIE_AI_API_KEY || '';
 const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || 'https://n8n.bahiago.tech/webhook/marketing-citas-mas';
 
 const stripe = new Stripe(STRIPE_SECRET_KEY);
