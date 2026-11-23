@@ -357,34 +357,37 @@ export const ExploreView: React.FC<Props> = ({
         )}
       </div>
 
-      {/* ── BANNER: Plan de Prueba $10 MXN para profesionales ── */}
+      {/* ── BANNER: Plan Único $1,200 MXN para profesionales ── */}
       {onOpenPromo && (
         <button
           type="button"
           id="explore-plan-prueba-banner"
           onClick={onOpenPromo}
-          className="w-full flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-amber-400 via-amber-300 to-emerald-400 rounded-3xl px-6 py-5 shadow-lg border border-amber-300 hover:shadow-xl hover:scale-[1.01] transition-all cursor-pointer group"
+          className="w-full flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-slate-900 rounded-3xl px-6 py-5 shadow-lg border border-emerald-500/40 hover:shadow-xl hover:scale-[1.01] transition-all cursor-pointer group text-white"
         >
           <div className="flex items-center space-x-4 text-left">
-            <div className="w-12 h-12 rounded-2xl bg-slate-950/20 flex items-center justify-center shrink-0">
-              <Sparkles className="w-6 h-6 text-slate-950" />
+            <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center shrink-0 border border-white/20">
+              <Sparkles className="w-6 h-6 text-emerald-300" />
             </div>
             <div>
               <div className="flex items-center flex-wrap gap-x-2 gap-y-1">
-                <span className="text-slate-950 font-black text-base sm:text-lg leading-tight">
-                  ¿Eres profesional? Prueba CitasMás por solo
+                <span className="text-white font-black text-base sm:text-lg leading-tight">
+                  ¿Eres profesional o clínica? Únete con el Plan Integral por
                 </span>
-                <span className="bg-slate-950 text-amber-400 font-black text-lg px-3 py-0.5 rounded-xl shadow-sm">
-                  $10 MXN/mes
+                <span className="bg-emerald-400 text-slate-950 font-black text-lg px-3 py-0.5 rounded-xl shadow-sm">
+                  $1,200 MXN/mes
+                </span>
+                <span className="text-emerald-200 text-xs font-bold">
+                  (IVA incluido)
                 </span>
               </div>
-              <p className="text-slate-800 text-xs sm:text-sm font-medium mt-0.5">
-                Landing Page activa · Cobro anticipado · Marketing con IA · Cancela cuando quieras
+              <p className="text-slate-200 text-xs sm:text-sm font-medium mt-0.5">
+                Landing Page activa · Cobro anticipado (0% no-shows) · Recordatorios WhatsApp · Marketing con IA
               </p>
             </div>
           </div>
-          <div className="flex items-center space-x-2 bg-slate-950 text-white font-black text-sm px-5 py-3 rounded-2xl shadow-md group-hover:bg-slate-800 transition-colors shrink-0">
-            <span>Ver planes y comenzar</span>
+          <div className="flex items-center space-x-2 bg-emerald-400 text-slate-950 font-black text-sm px-5 py-3 rounded-2xl shadow-md group-hover:bg-emerald-300 transition-colors shrink-0">
+            <span>Conocer membresía</span>
             <ArrowRight className="w-4 h-4" />
           </div>
         </button>
