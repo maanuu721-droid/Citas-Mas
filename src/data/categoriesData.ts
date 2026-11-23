@@ -577,10 +577,49 @@ export function resolveCategory(rawCategory: string, rawLabel?: string): SubCate
   return null;
 }
 
+// Mapa de emojis por mainCategoryId y por id de subcategoría
+const CATEGORY_EMOJI_MAP: Record<string, string> = {
+  // Por mainCategoryId
+  salud_bienestar: '🩺',
+  belleza_cuidado: '💅',
+  bienestar_terapias: '🧘',
+  fitness_deporte: '🏋️',
+  nutricion: '🥗',
+  psicologia: '🧠',
+  odontologia: '🦷',
+  veterinaria: '🐾',
+  educacion: '📚',
+  otros_servicios: '✨',
+  // Por id de subcategoría (más específico)
+  clinicas_medicas: '🏥',
+  psicologia_psicoterapia: '🧠',
+  masajes_spa: '💆',
+  barberia: '💈',
+  dentista_odontologia: '🦷',
+  terapia_holistica: '🌿',
+  nutricion_dietetica: '🥗',
+  yoga_meditacion: '🧘',
+  gym_fitness: '💪',
+  veterinaria_mascotas: '🐾',
+  maquillaje_estetica: '💄',
+  tatuajes_piercing: '🎨',
+  quiropractica_osteopatia: '🦴',
+  podologia: '🦶',
+  optometria: '👁️',
+  fonoaudiologia: '🗣️',
+  terapia_ocupacional: '🤲',
+  fisioterapia_rehabilitacion: '🏃',
+};
+
+function getCategoryEmoji(id: string, mainCategoryId?: string): string {
+  return CATEGORY_EMOJI_MAP[id] || (mainCategoryId ? CATEGORY_EMOJI_MAP[mainCategoryId] : undefined) || '⚕️';
+}
+
 export interface ActiveCategoryOption {
   id: string;
   label: string;
   count: number;
+  emoji?: string;
   mainCategoryId?: string;
   mainCategoryName?: string;
 }
@@ -634,6 +673,7 @@ export function getActiveCategoriesForUsers(
       id: entry.item.id,
       label: entry.item.label,
       count: entry.count,
+      emoji: getCategoryEmoji(entry.item.id, entry.item.mainCategoryId),
       mainCategoryId: entry.item.mainCategoryId,
       mainCategoryName: entry.item.mainCategoryName
     }));
