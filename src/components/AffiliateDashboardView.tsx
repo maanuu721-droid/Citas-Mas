@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Affiliate, Appointment, SubscriptionPlanType, ServiceItem } from '../types.ts';
 import { DataService } from '../services/dataService.ts';
 import { StripeService, StripePayoutItem } from '../services/stripeService.ts';
@@ -2216,548 +2216,109 @@ export const AffiliateDashboardView: React.FC<Props> = ({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
               <div>
                 <h2 className="text-base font-bold text-slate-900">
-                  Modelo de Suscripción & Exposición Local
+                  Membresía Mensual CitasMás
                 </h2>
                 <p className="text-xs text-slate-700 mt-0.5">
-                  Elige el plan ideal para tu consultorio o equipo. Sin contratos forzosos.
+                  Plan integral todo incluido para tu consultorio o negocio. Sin contratos forzosos.
                 </p>
               </div>
 
-              {/* Monthly vs Annual */}
-              <div className="flex items-center space-x-2 bg-slate-100 p-1 rounded-xl text-xs self-start sm:self-auto">
-                <button
-                  onClick={() => setBillingCycle('monthly')}
-                  className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
-                    billingCycle === 'monthly' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
-                  }`}
-                >
-                  Mensual
-                </button>
-                <button
-                  onClick={() => setBillingCycle('annual')}
-                  className={`px-3 py-1.5 rounded-lg font-semibold transition-all flex items-center space-x-1 ${
-                    billingCycle === 'annual' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
-                  }`}
-                >
-                  <span>Anual</span>
-                  <span className="bg-emerald-100 text-emerald-800 text-[10px] px-1.5 py-0.2 rounded-full font-bold">
-                    2 meses gratis
-                  </span>
-                </button>
+              <div className="inline-flex items-center space-x-2 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-800">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                <span>$1,200 MXN / mes (IVA incluido)</span>
               </div>
             </div>
 
-            {/* The 4 subscription plans */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-              {/* Plan 1: Básico */}
-              <div
-                onClick={() => handleSelectPlanAndOpenPayment('basico')}
-                className={`rounded-2xl p-5 border transition-all flex flex-col justify-between cursor-pointer relative ${
-                  selectedPlanTab === 'basico'
-                    ? 'border-2 border-emerald-500 bg-emerald-50/50 shadow-xl ring-2 ring-emerald-500/20'
-                    : 'border-slate-200 bg-white hover:border-emerald-300 shadow-xs'
-                }`}
-              >
-                {selectedPlanTab === 'basico' && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[10px] font-black px-3 py-0.5 rounded-full uppercase tracking-wider flex items-center space-x-1 shadow-sm">
-                    <Check className="w-3 h-3" />
-                    <span>Plan Seleccionado</span>
-                  </div>
-                )}
-                <div>
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-bold text-slate-900 text-sm">Plan Básico</h3>
-                    {formData.plan === 'basico' ? (
-                      <span className="text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-full">
-                        ACTIVO
-                      </span>
-                    ) : selectedPlanTab === 'basico' ? (
-                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
-                        SELECCIONADO
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="mt-3">
-                    <span className="text-2xl font-black text-slate-900">
-                      ${billingCycle === 'annual' ? '199' : '239'}
-                    </span>
-                    <span className="text-xs text-slate-600"> MXN/mes</span>
-                  </div>
-                  <p className="text-[11px] text-slate-700 mt-1">Ideal para profesionales individuales independientes.</p>
-
-                  <ul className="mt-4 space-y-2 text-xs text-slate-700">
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-emerald-600 font-bold">✓</span>
-                      <span><strong>1 Video de 1 minuto</strong> producido con IA</span>
-                    </li>
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-emerald-600 font-bold">✓</span>
-                      <span><strong>1 Imagen tamaño 9:16</strong> (Stories/Reels)</span>
-                    </li>
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-emerald-600 font-bold">✓</span>
-                      <span><strong>Etapa 1 de publicidad</strong> digital</span>
-                    </li>
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-emerald-600 font-bold">✓</span>
-                      <span><strong>Descubre tu cliente ideal</strong> (Buyer Personas)</span>
-                    </li>
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-emerald-600 font-bold">✓</span>
-                      <span>1 Profesional • 100 Whats/mes</span>
-                    </li>
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-emerald-600 font-bold">✓</span>
-                      <span>Confirmación de cita automática</span>
-                    </li>
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-emerald-600 font-bold">✓</span>
-                      <span>Landing page básica oficial</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSelectPlanAndOpenPayment('basico');
-                  }}
-                  className={`mt-6 w-full py-2.5 rounded-xl font-bold text-xs transition-colors cursor-pointer ${
-                    selectedPlanTab === 'basico'
-                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  }`}
-                >
-                  {selectedPlanTab === 'basico'
-                    ? `Pagar Plan Básico ($${billingCycle === 'annual' ? '199' : '239'} MXN)`
-                    : 'Elegir y Pagar Básico'}
-                </button>
+            {/* Plan Único CitasMás */}
+            <div className="mt-6 rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 text-white shadow-xl border-2 border-emerald-500/80 relative overflow-hidden">
+              <div className="absolute top-0 right-0 bg-emerald-500 text-slate-950 font-black text-xs uppercase px-5 py-1.5 rounded-bl-2xl shadow-sm">
+                Membresía Completa • IVA Incluido
               </div>
 
-              {/* Plan 2: Pro */}
-              <div
-                onClick={() => handleSelectPlanAndOpenPayment('pro')}
-                className={`rounded-2xl p-5 border transition-all flex flex-col justify-between relative cursor-pointer ${
-                  selectedPlanTab === 'pro'
-                    ? 'border-2 border-emerald-500 bg-emerald-50/50 shadow-xl ring-2 ring-emerald-500/20'
-                    : 'border-slate-200 bg-white hover:border-emerald-300 shadow-xs'
-                }`}
-              >
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-900 text-emerald-400 text-[10px] font-bold px-3 py-0.5 rounded-full uppercase tracking-wider flex items-center space-x-1 shadow-sm">
-                  {selectedPlanTab === 'pro' && <Check className="w-3 h-3 text-emerald-400" />}
-                  <span>Más Popular</span>
-                </div>
-
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-800 pb-6">
                 <div>
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-bold text-slate-900 text-sm">Plan Pro</h3>
-                    {formData.plan === 'pro' ? (
-                      <span className="text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-full">
-                        ACTIVO
-                      </span>
-                    ) : selectedPlanTab === 'pro' ? (
-                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
-                        SELECCIONADO
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="mt-3">
-                    <span className="text-2xl font-black text-slate-900">
-                      ${billingCycle === 'annual' ? '389' : '469'}
-                    </span>
-                    <span className="text-xs text-slate-600"> MXN/mes</span>
-                  </div>
-                  <p className="text-[11px] text-emerald-700 font-semibold mt-1">Prueba 14 días gratis</p>
-
-                  <ul className="mt-4 space-y-2 text-xs text-slate-700">
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-emerald-600 font-bold">✓</span>
-                      <span><strong>Todo lo del Plan Básico</strong> (Video 1m, 9:16, Etapa 1)</span>
-                    </li>
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-emerald-600 font-bold">✓</span>
-                      <span><strong>MÁS Exposición prolongada</strong> en redes sociales</span>
-                    </li>
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-amber-500 font-bold">⚡</span>
-                      <span><strong>Activa Turbo Redes:</strong> Turbo 1 (+$260), Turbo 2 (+$910), Turbo 3 (+$1950)</span>
-                    </li>
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-emerald-600 font-bold">✓</span>
-                      <span><strong>Mensajes WhatsApp Ilimitados</strong></span>
-                    </li>
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-emerald-600 font-bold">✓</span>
-                      <span>Recordatorios automáticos 24h y 2h antes</span>
-                    </li>
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-emerald-600 font-bold">✓</span>
-                      <span><strong>Citas Pagadas Anticipadas</strong> obligatorias</span>
-                    </li>
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-emerald-600 font-bold">✓</span>
-                      <span>Reagenda citas gratis &gt;24h</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div className="mt-6 space-y-2">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSelectPlanAndOpenPayment('pro');
-                    }}
-                    className="w-full py-2.5 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer"
-                  >
+                  <div className="inline-flex items-center space-x-1.5 bg-emerald-950/80 border border-emerald-700/60 px-3 py-1 rounded-full text-xs text-emerald-400 font-semibold mb-2">
                     <Sparkles className="w-3.5 h-3.5" />
-                    <span>
-                      {selectedPlanTab === 'pro'
-                        ? `Pagar Plan Pro ($${billingCycle === 'annual' ? '389' : '469'} MXN)`
-                        : 'Elegir y Pagar Pro'}
-                    </span>
-                  </button>
+                    <span>Plan Único Profesional</span>
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-black text-white">
+                    Plan Integral CitasMás
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl leading-relaxed">
+                    Acceso total a todas las herramientas: landing page oficial, cobro anticipado de citas (0% no-shows), recordatorios de WhatsApp automatizados y suite de marketing con Inteligencia Artificial.
+                  </p>
+                </div>
+
+                <div className="text-left md:text-right shrink-0 bg-slate-900/90 border border-slate-800 p-5 rounded-2xl">
+                  <div className="text-3xl sm:text-4xl font-black text-emerald-400">
+                    $1,200
+                  </div>
+                  <div className="text-xs font-bold text-slate-300 mt-0.5">
+                    MXN / mes
+                  </div>
+                  <div className="text-[11px] font-bold text-emerald-400 bg-emerald-950/90 border border-emerald-700/60 px-2.5 py-0.5 rounded-md inline-block mt-2">
+                    ✓ IVA ya incluido
+                  </div>
                 </div>
               </div>
 
-              {/* Plan 3: Equipo */}
-              <div
-                onClick={() => handleSelectPlanAndOpenPayment('equipo')}
-                className={`rounded-2xl p-5 border transition-all flex flex-col justify-between cursor-pointer relative ${
-                  selectedPlanTab === 'equipo'
-                    ? 'border-2 border-emerald-500 bg-emerald-50/50 shadow-xl ring-2 ring-emerald-500/20'
-                    : 'border-slate-200 bg-white hover:border-emerald-300 shadow-xs'
-                }`}
-              >
-                {selectedPlanTab === 'equipo' && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[10px] font-black px-3 py-0.5 rounded-full uppercase tracking-wider flex items-center space-x-1 shadow-sm">
-                    <Check className="w-3 h-3" />
-                    <span>Plan Seleccionado</span>
-                  </div>
-                )}
-                <div>
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-bold text-slate-900 text-sm">Plan Equipo</h3>
-                    {formData.plan === 'equipo' ? (
-                      <span className="text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-full">
-                        ACTIVO
-                      </span>
-                    ) : selectedPlanTab === 'equipo' ? (
-                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
-                        SELECCIONADO
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="mt-3">
-                    <span className="text-2xl font-black text-slate-900">
-                      ${billingCycle === 'annual' ? '949' : '1139'}
-                    </span>
-                    <span className="text-xs text-slate-600"> MXN/mes</span>
-                  </div>
-                  <p className="text-[11px] text-slate-700 mt-1">Para clínicas y negocios con varios especialistas.</p>
-
-                  <ul className="mt-4 space-y-2 text-xs text-slate-700">
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-emerald-600 font-bold">✓</span>
-                      <span><strong>Hasta 10 profesionales</strong></span>
-                    </li>
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-emerald-600 font-bold">✓</span>
-                      <span>Todo lo del Plan Pro</span>
-                    </li>
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-emerald-600 font-bold">✓</span>
-                      <span><strong>Exposición preferencial</strong> en búsquedas</span>
-                    </li>
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-emerald-600 font-bold">✓</span>
-                      <span>Anuncios segmentados por zona</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div className="mt-6 space-y-2">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSelectPlanAndOpenPayment('equipo');
-                    }}
-                    className="w-full py-2.5 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>
-                      {selectedPlanTab === 'equipo'
-                        ? `Pagar Plan Equipo ($${billingCycle === 'annual' ? '949' : '1139'} MXN)`
-                        : 'Elegir y Pagar Equipo'}
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Plan 4: Comisión */}
-              <div
-                onClick={() => handleSelectPlanAndOpenPayment('comision')}
-                className={`rounded-2xl p-5 border transition-all flex flex-col justify-between cursor-pointer relative ${
-                  selectedPlanTab === 'comision'
-                    ? 'border-2 border-emerald-500 bg-emerald-50/50 shadow-xl ring-2 ring-emerald-500/20'
-                    : 'border-slate-200 bg-white hover:border-emerald-300 shadow-xs'
-                }`}
-              >
-                {selectedPlanTab === 'comision' && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[10px] font-black px-3 py-0.5 rounded-full uppercase tracking-wider flex items-center space-x-1 shadow-sm">
-                    <Check className="w-3 h-3" />
-                    <span>Plan Seleccionado</span>
-                  </div>
-                )}
-                <div>
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-bold text-slate-900 text-sm">Por Comisión</h3>
-                    {formData.plan === 'comision' ? (
-                      <span className="text-[10px] bg-emerald-600 text-white font-bold px-2 py-0.5 rounded-full">
-                        ACTIVO
-                      </span>
-                    ) : selectedPlanTab === 'comision' ? (
-                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
-                        SELECCIONADO
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="mt-3">
-                    <span className="text-2xl font-black text-slate-900">10%</span>
-                    <span className="text-xs text-slate-600"> por cita pagada</span>
-                  </div>
-                  <p className="text-[11px] text-slate-700 mt-1">Desbloquea todo el nivel Equipo.</p>
-
-                  <ul className="mt-4 space-y-2 text-xs text-slate-700">
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-emerald-600 font-bold">✓</span>
-                      <span><strong>Todas las funciones del Plan Equipo</strong></span>
-                    </li>
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-emerald-600 font-bold">✓</span>
-                      <span>Hasta 10 profesionales</span>
-                    </li>
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-emerald-600 font-bold">✓</span>
-                      <span>Mensajes ilimitados WhatsApp</span>
-                    </li>
-                    <li className="flex items-center space-x-1.5 text-slate-500">
-                      <span>✓</span>
-                      <span>Sin costo mensual ($0 MXN)</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSelectPlanAndOpenPayment('comision');
-                  }}
-                  className={`mt-6 w-full py-2.5 rounded-xl font-bold text-xs transition-colors cursor-pointer ${
-                    selectedPlanTab === 'comision'
-                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  }`}
-                >
-                  {selectedPlanTab === 'comision' ? 'Activar Plan por Comisión ($0 MXN)' : 'Elegir y Activar Comisión'}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Add-on TURBO 3-Level Grid */}
-          <div className="rounded-3xl border border-amber-300 bg-gradient-to-br from-amber-500/10 via-amber-400/5 to-white p-6 shadow-sm space-y-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <div>
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-slate-200">
                 <div className="flex items-center space-x-2">
-                  <span className="bg-amber-500 text-slate-950 font-extrabold text-xs px-2.5 py-0.5 rounded-full flex items-center space-x-1 shadow-xs">
-                    <Zap className="w-3.5 h-3.5 fill-current" />
-                    <span>TURBO EN REDES SOCIALES</span>
-                  </span>
-                  <span className="text-xs font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-md">
-                    Multiplica tus Pacientes
-                  </span>
-                  {formData.isTurbo && (
-                    <span className="bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
-                      ✓ Activo (Nivel {formData.turboLevel || 1})
-                    </span>
-                  )}
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span><strong>Cobro 100% anticipado de citas:</strong> Tarjeta bancaria vía Stripe México (0% no-shows).</span>
                 </div>
-                <h3 className="text-base font-bold text-slate-900 mt-1">
-                  Elige tu potencia de Impulso Turbo en Redes Sociales & Geolocalización
-                </h3>
-                <p className="text-xs text-slate-700 leading-relaxed max-w-2xl">
-                  Aumenta drásticamente las visitas y clics de tus anuncios. Puedes contratar cualquiera de los 3 niveles turbo y desplegar de inmediato tu pasarela de cobro.
-                </p>
+                <div className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span><strong>WhatsApp Automático:</strong> Recordatorios 24h y 2h antes de cada cita.</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span><strong>Videos y Creativos IA:</strong> Producción de video de 1 min y flyers 9:16 para redes.</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span><strong>Descubrimiento de Buyer Personas:</strong> Perfil del cliente ideal con DeepSeek.</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span><strong>Dispersión directa a tu Banco:</strong> Depósitos a tu cuenta CLABE de 18 dígitos.</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span><strong>Sin comisiones por cita:</strong> Agenda y consultas 100% ilimitadas.</span>
+                </div>
               </div>
 
-              {selectedPlanTab === 'turbo' && (
-                <span className="self-start md:self-auto bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-xs flex items-center space-x-1">
-                  <Check className="w-3.5 h-3.5" />
-                  <span>Turbo Seleccionado</span>
-                </span>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-              {/* Turbo 1 */}
-              <div
-                onClick={() => handleSelectTurboAndOpenPayment(1)}
-                className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
-                  selectedPlanTab === 'turbo' && checkoutTurboLevel === 1
-                    ? 'border-2 border-amber-500 bg-amber-50/80 shadow-lg ring-2 ring-amber-400/30'
-                    : 'border-slate-200 bg-white hover:border-amber-300 shadow-2xs'
-                }`}
-              >
-                <div>
-                  <div className="flex justify-between items-center">
-                    <span className="font-black text-sm text-slate-900">Turbo 1</span>
-                    <span className="text-xs font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
-                      +$260 MXN/mes
-                    </span>
-                  </div>
-                  <h4 className="text-xs font-bold text-slate-800 mt-2">Impulso Express Redes</h4>
-                  <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
-                    Campaña rápida de alto impacto en Instagram y Facebook Stories para llenar horarios vacíos de tu semana.
-                  </p>
-                  <ul className="mt-3 space-y-1.5 text-[11px] text-slate-700">
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-amber-600 font-bold">✓</span>
-                      <span>Distribución acelerada de tu video 1 min</span>
-                    </li>
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-amber-600 font-bold">✓</span>
-                      <span>+30% de clics garantizados a WhatsApp</span>
-                    </li>
-                  </ul>
+              <div className="mt-6 pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center space-x-2 text-xs text-slate-400">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span>Sin contratos forzosos • Cancela en cualquier momento</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSelectTurboAndOpenPayment(1);
-                  }}
-                  className={`mt-4 w-full py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
-                    selectedPlanTab === 'turbo' && checkoutTurboLevel === 1
-                      ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                      : 'bg-slate-900 text-white hover:bg-slate-800'
-                  }`}
-                >
-                  Pagar Turbo 1 ($260 MXN)
-                </button>
-              </div>
 
-              {/* Turbo 2 */}
-              <div
-                onClick={() => handleSelectTurboAndOpenPayment(2)}
-                className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
-                  selectedPlanTab === 'turbo' && checkoutTurboLevel === 2
-                    ? 'border-2 border-amber-500 bg-amber-50/80 shadow-lg ring-2 ring-amber-400/30'
-                    : 'border-slate-200 bg-white hover:border-amber-300 shadow-2xs'
-                }`}
-              >
-                <div>
-                  <div className="flex justify-between items-center">
-                    <span className="font-black text-sm text-slate-900">Turbo 2</span>
-                    <span className="text-xs font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
-                      +$910 MXN/mes
-                    </span>
-                  </div>
-                  <h4 className="text-xs font-bold text-slate-800 mt-2">Alcance Geolocalizado</h4>
-                  <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
-                    Segmentación geolocalizada a clientes a menos de 5 km a la redonda de tu consultorio o negocio.
-                  </p>
-                  <ul className="mt-3 space-y-1.5 text-[11px] text-slate-700">
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-amber-600 font-bold">✓</span>
-                      <span>Geocerca de 5 km alrededor de tu ubicación</span>
-                    </li>
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-amber-600 font-bold">✓</span>
-                      <span>Insignia plateada de Profesional Destacado</span>
-                    </li>
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-amber-600 font-bold">✓</span>
-                      <span>Doble frecuencia de impresión en Stories</span>
-                    </li>
-                  </ul>
-                </div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSelectTurboAndOpenPayment(2);
-                  }}
-                  className={`mt-4 w-full py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
-                    selectedPlanTab === 'turbo' && checkoutTurboLevel === 2
-                      ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                      : 'bg-slate-900 text-white hover:bg-slate-800'
-                  }`}
-                >
-                  Pagar Turbo 2 ($910 MXN)
-                </button>
-              </div>
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectPlanAndOpenPayment('pro')}
+                    className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs px-6 py-3 rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center space-x-2 cursor-pointer"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>Pagar Membresía Mensual ($1,200 MXN)</span>
+                  </button>
 
-              {/* Turbo 3 */}
-              <div
-                onClick={() => handleSelectTurboAndOpenPayment(3)}
-                className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
-                  selectedPlanTab === 'turbo' && checkoutTurboLevel === 3
-                    ? 'border-2 border-amber-500 bg-amber-50/80 shadow-lg ring-2 ring-amber-400/30'
-                    : 'border-slate-200 bg-white hover:border-amber-300 shadow-2xs'
-                }`}
-              >
-                <div>
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center space-x-1">
-                      <span className="font-black text-sm text-slate-900">Turbo 3</span>
-                      <span className="bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase">
-                        Máximo
-                      </span>
-                    </div>
-                    <span className="text-xs font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
-                      +$1,950 MXN/mes
-                    </span>
-                  </div>
-                  <h4 className="text-xs font-bold text-slate-800 mt-2">Posición #1 & Máxima Exposición</h4>
-                  <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
-                    Prioridad algorítmica absoluta en tu ciudad, primera posición en mapas y campañas masivas multicanal.
-                  </p>
-                  <ul className="mt-3 space-y-1.5 text-[11px] text-slate-700">
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-amber-600 font-bold">✓</span>
-                      <span><strong>Posición #1 garantizada</strong> en tu zona</span>
-                    </li>
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-amber-600 font-bold">✓</span>
-                      <span>Insignia dorada "Profesional Destacado Seguro"</span>
-                    </li>
-                    <li className="flex items-center space-x-1.5">
-                      <span className="text-amber-600 font-bold">✓</span>
-                      <span>Campaña permanente de alta conversión</span>
-                    </li>
-                  </ul>
+                  <button
+                    type="button"
+                    onClick={() => handleSubscribeWithStripe('pro', 1200, 'Plan Integral CitasMás')}
+                    disabled={isStartingStripeSub}
+                    className="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-5 py-3 rounded-xl border border-slate-700 transition-all flex items-center justify-center space-x-2 cursor-pointer"
+                  >
+                    <CreditCard className="w-4 h-4 text-emerald-400" />
+                    <span>{isStartingStripeSub ? 'Iniciando...' : 'Suscripción Recurrente Stripe'}</span>
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSelectTurboAndOpenPayment(3);
-                  }}
-                  className={`mt-4 w-full py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
-                    selectedPlanTab === 'turbo' && checkoutTurboLevel === 3
-                      ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                      : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
-                  }`}
-                >
-                  Pagar Turbo 3 ($1,950 MXN)
-                </button>
               </div>
             </div>
           </div>
+
 
           {/* STRIPE PAYOUTS / DISPERSIONES BANCARIAS TABLE */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
