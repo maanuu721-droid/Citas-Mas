@@ -51,9 +51,9 @@ export class StripeService {
       return data;
     } catch {
       return {
-        publishableKey: (import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_live_51Ue3CSK0YlOOixVDEyxAk408xePio2UamtW2e0XXgjQdUXvezs7ds9eyeCxmiqpDw25SkozZCxDgPjGCOgvFm3Tl00XKhVhB7K',
+        publishableKey: (import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_lSViyjTjDSaNiuLuSqZXRFLN00KFh6HAV1',
         currency: 'mxn',
-        mode: 'live',
+        mode: 'test',
         capabilities: { checkout: true, elements: true, subscriptions: true, payouts: true }
       };
     }
