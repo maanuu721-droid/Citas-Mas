@@ -61,6 +61,7 @@ export const ExploreView: React.FC<Props> = ({
   const [filterHighRating, setFilterHighRating] = useState(false);
   const [maxPrice, setMaxPrice] = useState<number>(2500);
   const [verificationFilter, setVerificationFilter] = useState<'all_active' | 'destacados_only' | 'show_all_with_inactive'>('all_active');
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [addressModalAffiliate, setAddressModalAffiliate] = useState<Affiliate | null>(null);
   const [copiedAddressToast, setCopiedAddressToast] = useState(false);
 
@@ -393,85 +394,67 @@ export const ExploreView: React.FC<Props> = ({
         </button>
       )}
 
-      {/* Selector de País - Países de Habla Hispana */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs space-y-2.5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-          <div className="flex items-center space-x-2">
-            <Globe className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span className="font-bold text-xs text-slate-900 uppercase tracking-wide">
-              Selecciona tu País:
-            </span>
-            <span className="text-[11px] text-slate-500 hidden md:inline">
-              Encuentra especialistas con dirección física exacta en España, Colombia, Argentina, Chile, México y más
-            </span>
-          </div>
+      {/* ═══════════════════════════════════════════════════════════
+           FILTRO SIMPLIFICADO — Mobile-first
+           • Pills de Especialidad/Categoría (con emoji, scroll horizontal)
+           • Pills rápidas de Ciudad/Zona
+           • Chips de filtros activos
+           • Botón "Más filtros" colapsable (Hoy / Mañana / Calificación / Ordenar)
+      ══════════════════════════════════════════════════════════════ */}
 
-          {selectedCountry && (
+      {/* ── Fila 1: Especialidad / Tipo de servicio ── */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between px-1">
+          <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Especialidad</span>
+          {selectedCategory !== 'all' && (
             <button
               type="button"
-              onClick={() => {
-                setSelectedCountry('');
-                setSelectedState('');
-                setSelectedCity('');
-              }}
-              className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 flex items-center space-x-1 cursor-pointer"
+              onClick={() => setSelectedCategory('all')}
+              className="text-[11px] text-emerald-700 font-semibold flex items-center space-x-1 cursor-pointer"
             >
               <FilterX className="w-3 h-3" />
-              <span>Ver todos los países ({affiliates.length})</span>
+              <span>Limpiar</span>
             </button>
           )}
         </div>
-
-        <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-none snap-x snap-mandatory">
+          {/* Pill: Todos */}
           <button
+            id="cat-pill-all"
             type="button"
-            onClick={() => {
-              setSelectedCountry('');
-              setSelectedState('');
-              setSelectedCity('');
-            }}
-            className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 cursor-pointer ${
-              !selectedCountry
-                ? 'bg-slate-900 text-white shadow-sm ring-1 ring-slate-900'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200/60'
+            onClick={() => setSelectedCategory('all')}
+            className={`flex-shrink-0 snap-start flex flex-col items-center justify-center px-4 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer min-w-[72px] ${
+              selectedCategory === 'all'
+                ? 'bg-slate-900 text-white shadow-md ring-2 ring-slate-700'
+                : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 active:scale-95'
             }`}
           >
-            <span>🌎 Todos los Países</span>
-            <span
-              className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                !selectedCountry ? 'bg-white/20 text-white' : 'bg-white text-slate-600'
-              }`}
-            >
-              {affiliates.length}
+            <span className="text-xl mb-1">🔍</span>
+            <span className="whitespace-nowrap">Todos</span>
+            <span className={`text-[10px] mt-0.5 font-semibold ${selectedCategory === 'all' ? 'text-emerald-300' : 'text-slate-400'}`}>
+              {zoneAffiliates.length}
             </span>
           </button>
 
-          {activeCountries.map((c) => {
-            const isSelected = countryMatches(selectedCountry, c.name) || selectedCountry === c.code;
+          {/* Pills dinámicas por categoría activa */}
+          {activeCategories.map((cat) => {
+            const isActive = selectedCategory === cat.id;
             return (
               <button
-                key={c.code}
-                id={`country-pill-${c.code.toLowerCase()}`}
+                key={cat.id}
+                id={`cat-pill-${cat.id}`}
                 type="button"
-                onClick={() => {
-                  setSelectedCountry(isSelected ? '' : c.name);
-                  setSelectedState('');
-                  setSelectedCity('');
-                }}
-                className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 cursor-pointer ${
-                  isSelected
-                    ? 'bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-700'
-                    : 'bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200'
+                onClick={() => setSelectedCategory(isActive ? 'all' : cat.id)}
+                className={`flex-shrink-0 snap-start flex flex-col items-center justify-center px-4 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer min-w-[72px] active:scale-95 ${
+                  isActive
+                    ? 'bg-emerald-600 text-white shadow-md ring-2 ring-emerald-500'
+                    : 'bg-white text-slate-700 border border-slate-200 hover:bg-emerald-50 hover:border-emerald-300'
                 }`}
               >
-                <span className="text-base leading-none">{c.flag}</span>
-                <span>{c.name}</span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                    isSelected ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-800 border border-emerald-200/60'
-                  }`}
-                >
-                  {c.count}
+                <span className="text-xl mb-1">{cat.emoji || '⚕️'}</span>
+                <span className="whitespace-nowrap text-center leading-tight">{cat.label}</span>
+                <span className={`text-[10px] mt-0.5 font-semibold ${isActive ? 'text-emerald-100' : 'text-slate-400'}`}>
+                  {cat.count}
                 </span>
               </button>
             );
@@ -479,38 +462,54 @@ export const ExploreView: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Quick Zone Filter Pills - Only zones with registered affiliates */}
+      {/* ── Fila 2: Zona rápida (ciudades con afiliados) + País ── */}
       <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-none">
-        <div className="flex items-center space-x-1 text-xs font-bold text-slate-700 shrink-0 mr-1">
+        <div className="flex items-center space-x-1 text-xs font-bold text-slate-500 shrink-0">
           <MapPin className="w-3.5 h-3.5 text-emerald-600" />
           <span>Zona:</span>
         </div>
 
-        {/* All zones pill */}
+        {/* Pill: Todos */}
         <button
           id="zone-pill-all"
           type="button"
-          onClick={() => {
-            setSelectedState('');
-            setSelectedCity('');
-          }}
-          className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 cursor-pointer ${
-            !selectedState && !selectedCity
-              ? 'bg-emerald-700 text-white shadow-xs'
+          onClick={() => { setSelectedState(''); setSelectedCity(''); setSelectedCountry(''); }}
+          className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 cursor-pointer active:scale-95 ${
+            !selectedState && !selectedCity && !selectedCountry
+              ? 'bg-emerald-700 text-white shadow-sm'
               : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          <span>Toda la República</span>
-          <span
-            className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-              !selectedState && !selectedCity ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-            }`}
-          >
+          <span>🌎 Todo</span>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${!selectedState && !selectedCity && !selectedCountry ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
             {affiliates.length}
           </span>
         </button>
 
-        {/* Dynamic Zone pills: only cities with registered affiliates */}
+        {/* Pills de países activos */}
+        {activeCountries.map((c) => {
+          const isSel = countryMatches(selectedCountry, c.name) || selectedCountry === c.code;
+          return (
+            <button
+              key={c.code}
+              type="button"
+              onClick={() => { setSelectedCountry(isSel ? '' : c.name); setSelectedState(''); setSelectedCity(''); }}
+              className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 cursor-pointer active:scale-95 ${
+                isSel
+                  ? 'bg-slate-900 text-white shadow-sm ring-1 ring-slate-700'
+                  : 'bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200'
+              }`}
+            >
+              <span className="text-sm leading-none">{c.flag}</span>
+              <span>{c.name}</span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${isSel ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-800 border border-emerald-200/60'}`}>
+                {c.count}
+              </span>
+            </button>
+          );
+        })}
+
+        {/* Pills de ciudades/zonas rápidas */}
         {quickZonePills.map((zone) => {
           const isActive =
             cityMatches(selectedCity, zone.cityName) ||
@@ -521,28 +520,17 @@ export const ExploreView: React.FC<Props> = ({
               id={`zone-pill-${zone.id}`}
               type="button"
               onClick={() => {
-                if (isActive) {
-                  setSelectedState('');
-                  setSelectedCity('');
-                } else {
-                  setSelectedState(zone.stateCode);
-                  setSelectedCity(zone.cityName);
-                }
+                if (isActive) { setSelectedState(''); setSelectedCity(''); }
+                else { setSelectedState(zone.stateCode); setSelectedCity(zone.cityName); }
               }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 cursor-pointer ${
+              className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 cursor-pointer active:scale-95 ${
                 isActive
-                  ? 'bg-emerald-700 text-white shadow-xs'
+                  ? 'bg-emerald-700 text-white shadow-sm'
                   : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
               }`}
             >
               <span>{zone.label}</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  isActive
-                    ? 'bg-white/20 text-white'
-                    : 'bg-emerald-50 text-emerald-800 border border-emerald-200/60'
-                }`}
-              >
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${isActive ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-800 border border-emerald-200/60'}`}>
                 {zone.count}
               </span>
             </button>
@@ -550,317 +538,194 @@ export const ExploreView: React.FC<Props> = ({
         })}
       </div>
 
-      {/* Categories Horizontal Scroll - Only categories with registered affiliates */}
-      <div className="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none">
-        {/* All categories pill */}
-        <button
-          id="cat-pill-all"
-          type="button"
-          onClick={() => setSelectedCategory('all')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 cursor-pointer ${
-            selectedCategory === 'all'
-              ? 'bg-slate-900 text-white shadow-sm ring-1 ring-slate-900'
-              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-          }`}
-        >
-          <span>Todos los servicios</span>
-          <span
-            className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-              selectedCategory === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+      {/* ── Fila 3: Chips de filtros activos + botón "Más filtros" ── */}
+      <div className="flex flex-wrap items-center gap-2">
+
+        {/* Chip: Filtro de categoría activo */}
+        {selectedCategory !== 'all' && (
+          <span className="inline-flex items-center space-x-1 bg-emerald-50 text-emerald-900 border border-emerald-300 font-semibold px-2.5 py-1 rounded-lg text-xs">
+            <Sparkles className="w-3 h-3 text-emerald-600" />
+            <span>{activeCategories.find((c) => c.id === selectedCategory)?.label || selectedCategory}</span>
+            <button type="button" onClick={() => setSelectedCategory('all')} className="text-emerald-700 hover:text-rose-600 ml-1 font-bold cursor-pointer">×</button>
+          </span>
+        )}
+
+        {/* Chip: Filtro de zona activo */}
+        {(selectedCity || selectedState || selectedCountry) && (
+          <span className="inline-flex items-center space-x-1 bg-slate-100 text-slate-800 border border-slate-300 font-semibold px-2.5 py-1 rounded-lg text-xs">
+            <MapPin className="w-3 h-3 text-emerald-600" />
+            <span>
+              {selectedCity
+                ? `${selectedCity}${selectedState ? `, ${activeStates.find((s) => s.code === selectedState)?.name || selectedState}` : ''}`
+                : selectedState
+                ? (activeStates.find((s) => s.code === selectedState)?.name || selectedState)
+                : selectedCountry}
+            </span>
+            <button type="button" onClick={() => { setSelectedCity(''); setSelectedState(''); setSelectedCountry(''); }} className="text-slate-600 hover:text-rose-600 ml-1 font-bold cursor-pointer">×</button>
+          </span>
+        )}
+
+        {/* Chip: Disponible hoy */}
+        {filterTodayOnly && (
+          <span className="inline-flex items-center space-x-1 bg-emerald-100 text-emerald-900 border border-emerald-300 font-semibold px-2.5 py-1 rounded-lg text-xs">
+            <Clock className="w-3 h-3" />
+            <span>Disponible Hoy</span>
+            <button type="button" onClick={() => setFilterTodayOnly(false)} className="text-emerald-700 hover:text-rose-600 ml-1 font-bold cursor-pointer">×</button>
+          </span>
+        )}
+
+        {/* Chip: Calificación alta */}
+        {filterHighRating && (
+          <span className="inline-flex items-center space-x-1 bg-amber-50 text-amber-900 border border-amber-300 font-semibold px-2.5 py-1 rounded-lg text-xs">
+            <Star className="w-3 h-3 text-amber-500" />
+            <span>4.5+ estrellas</span>
+            <button type="button" onClick={() => setFilterHighRating(false)} className="text-amber-700 hover:text-rose-600 ml-1 font-bold cursor-pointer">×</button>
+          </span>
+        )}
+
+        {/* Spacer + Botón "Más filtros" */}
+        <div className="ml-auto flex items-center gap-2">
+
+          {/* Limpiar todo (si hay filtros activos) */}
+          {(selectedCategory !== 'all' || selectedCity || selectedState || selectedCountry || filterTodayOnly || filterTomorrowOnly || filterHighRating || sortBy !== 'recommended') && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTerm('');
+                setSelectedCategory('all');
+                setSelectedCountry('');
+                setSelectedState('');
+                setSelectedCity('');
+                setFilterTodayOnly(false);
+                setFilterTomorrowOnly(false);
+                setFilterHighRating(false);
+                setMaxPrice(2500);
+                setSortBy('recommended');
+                setVerificationFilter('all_active');
+              }}
+              className="text-xs font-semibold text-rose-600 hover:text-rose-700 flex items-center space-x-1 cursor-pointer"
+            >
+              <FilterX className="w-3.5 h-3.5" />
+              <span>Limpiar todo</span>
+            </button>
+          )}
+
+          {/* Botón "Más filtros" toggle */}
+          <button
+            type="button"
+            onClick={() => setShowMoreFilters((v) => !v)}
+            className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              showMoreFilters || filterTodayOnly || filterTomorrowOnly || filterHighRating || sortBy !== 'recommended'
+                ? 'bg-slate-900 text-white shadow-sm'
+                : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
             }`}
           >
-            {zoneAffiliates.length}
-          </span>
-        </button>
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span>Filtros</span>
+            {(filterTodayOnly || filterTomorrowOnly || filterHighRating || sortBy !== 'recommended') && (
+              <span className="bg-emerald-500 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center">
+                {[filterTodayOnly, filterTomorrowOnly, filterHighRating, sortBy !== 'recommended'].filter(Boolean).length}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
 
-        {/* Dynamic active category pills - only categories with registered affiliates */}
-        {activeCategories.map((cat) => {
-          const isActive = selectedCategory === cat.id;
-          return (
+      {/* ── Panel colapsable: Más filtros ── */}
+      {showMoreFilters && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+
+          {/* Disponibilidad */}
+          <div>
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2 block">Disponibilidad</span>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setFilterTodayOnly(!filterTodayOnly)}
+                className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer active:scale-95 ${
+                  filterTodayOnly
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+                }`}
+              >
+                <span>⚡</span>
+                <span>Disponible Hoy</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterTomorrowOnly(!filterTomorrowOnly)}
+                className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer active:scale-95 ${
+                  filterTomorrowOnly
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-blue-50 text-blue-800 border border-blue-200 hover:bg-blue-100'
+                }`}
+              >
+                <span>📅</span>
+                <span>Disponible Mañana</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Calificación */}
+          <div>
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2 block">Calificación</span>
             <button
-              key={cat.id}
-              id={`cat-pill-${cat.id}`}
               type="button"
-              onClick={() => setSelectedCategory(isActive ? 'all' : cat.id)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 cursor-pointer ${
-                isActive
-                  ? 'bg-slate-900 text-white shadow-sm ring-1 ring-slate-900'
-                  : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+              onClick={() => setFilterHighRating(!filterHighRating)}
+              className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer active:scale-95 ${
+                filterHighRating
+                  ? 'bg-amber-500 text-white shadow-sm'
+                  : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
               }`}
             >
-              <span>{cat.label}</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                  isActive
-                    ? 'bg-emerald-500 text-white'
-                    : 'bg-emerald-50 text-emerald-800 border border-emerald-200/70'
-                }`}
-              >
-                {cat.count}
-              </span>
+              <span>⭐</span>
+              <span>Solo 4.5+ estrellas</span>
             </button>
-          );
-        })}
-      </div>
-
-      {/* Advanced Filter Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Country filter dropdown */}
-            <div className="flex items-center space-x-1.5">
-              <span className="text-slate-700 font-medium">País:</span>
-              <select
-                id="filter-country-select"
-                value={selectedCountry}
-                onChange={(e) => {
-                  setSelectedCountry(e.target.value);
-                  setSelectedState('');
-                  setSelectedCity('');
-                }}
-                className="bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3 py-1.5 font-medium focus:ring-1 focus:ring-emerald-500 text-xs"
-              >
-                <option value="">🌎 Todos los Países ({affiliates.length})</option>
-                {activeCountries.map((c) => (
-                  <option key={c.code} value={c.name}>
-                    {c.flag} {c.name} ({c.count})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* State/Region filter - Dynamic label and subdivisions */}
-            <div className="flex items-center space-x-1.5">
-              <span className="text-slate-700 font-medium">
-                {selectedCountry ? resolveCountry(selectedCountry).subdivisionLabel : 'Estado / Región'}:
-              </span>
-              <select
-                id="filter-state-select"
-                value={selectedState}
-                onChange={(e) => {
-                  setSelectedState(e.target.value);
-                  setSelectedCity('');
-                }}
-                className="bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3 py-1.5 font-medium focus:ring-1 focus:ring-emerald-500 text-xs"
-              >
-                <option value="">
-                  {selectedCountry ? `Todo ${selectedCountry}` : 'Todos los territorios'} ({zoneAffiliates.length})
-                </option>
-                {activeStates.map((st) => (
-                  <option key={st.code} value={st.code}>
-                    {st.name} ({st.count})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* City filter - Dynamic: Only cities with registered affiliates */}
-            {activeCities.length > 0 && (
-              <div className="flex items-center space-x-1.5">
-                <span className="text-slate-700 font-medium">Ciudad:</span>
-                <select
-                  id="filter-city-select"
-                  value={selectedCity}
-                  onChange={(e) => setSelectedCity(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3 py-1.5 font-medium focus:ring-1 focus:ring-emerald-500 text-xs"
-                >
-                  <option value="">Todas las ciudades ({zoneAffiliates.length})</option>
-                  {activeCities.map((cityObj) => (
-                    <option key={`${cityObj.stateCode}-${cityObj.city}`} value={cityObj.city}>
-                      {cityObj.city} ({cityObj.count})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Category filter dropdown - Only categories with registered affiliates */}
-            {activeCategories.length > 0 && (
-              <div className="flex items-center space-x-1.5">
-                <span className="text-slate-700 font-medium">Categoría:</span>
-                <select
-                  id="filter-category-select"
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3 py-1.5 font-medium focus:ring-1 focus:ring-emerald-500 text-xs max-w-[200px] truncate"
-                >
-                  <option value="all">Todas ({affiliates.length})</option>
-                  {activeCategories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.label} ({cat.count})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Toggles */}
-            <label className="flex items-center space-x-1.5 cursor-pointer select-none">
-              <input
-                id="filter-today-checkbox"
-                type="checkbox"
-                checked={filterTodayOnly}
-                onChange={(e) => setFilterTodayOnly(e.target.checked)}
-                className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
-              />
-              <span className="font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                ● Disponible Hoy
-              </span>
-            </label>
-
-            <label className="flex items-center space-x-1.5 cursor-pointer select-none">
-              <input
-                id="filter-tomorrow-checkbox"
-                type="checkbox"
-                checked={filterTomorrowOnly}
-                onChange={(e) => setFilterTomorrowOnly(e.target.checked)}
-                className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
-              />
-              <span className="font-medium text-blue-800 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
-                ● Disponible Mañana
-              </span>
-            </label>
-
-            <label className="flex items-center space-x-1.5 cursor-pointer select-none">
-              <input
-                id="filter-rating-checkbox"
-                type="checkbox"
-                checked={filterHighRating}
-                onChange={(e) => setFilterHighRating(e.target.checked)}
-                className="w-4 h-4 text-amber-500 rounded border-slate-300 focus:ring-amber-500"
-              />
-              <span className="font-medium text-slate-700">⭐ 4.5+ calificación</span>
-            </label>
-
-            {/* Verification Tier Filter Selector */}
-            <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
-              <button
-                type="button"
-                onClick={() => setVerificationFilter('all_active')}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors ${
-                  verificationFilter === 'all_active'
-                    ? 'bg-white text-emerald-800 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="Mostrar profesionales activos con al menos 1 documento"
-              >
-                🟢 Activos
-              </button>
-              <button
-                type="button"
-                onClick={() => setVerificationFilter('destacados_only')}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors flex items-center space-x-1 ${
-                  verificationFilter === 'destacados_only'
-                    ? 'bg-amber-400 text-slate-950 shadow-xs'
-                    : 'text-amber-800 hover:text-amber-950'
-                }`}
-                title="Solo con Insignia de Usuario Destacado Seguro (4 de 4 documentos)"
-              >
-                <Award className="w-3 h-3 fill-current" />
-                <span>⭐ Destacados Seguros</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setVerificationFilter('show_all_with_inactive')}
-                className={`px-2 py-1 rounded-lg text-[10px] font-medium transition-colors ${
-                  verificationFilter === 'show_all_with_inactive'
-                    ? 'bg-white text-slate-900 shadow-xs font-bold'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-                title="Ver todos, incluyendo perfiles inactivos sin documentos"
-              >
-                Ver Inactivos
-              </button>
-            </div>
           </div>
 
-          {/* Sort By Dropdown */}
-          <div className="flex items-center space-x-2 ml-auto">
-            <span className="text-slate-700 font-medium">Ordenar:</span>
-            <select
-              id="sort-by-select"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              className="bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3 py-1.5 font-semibold text-xs focus:ring-1 focus:ring-emerald-500"
-            >
-              <option value="recommended">Recomendados (Inteligente)</option>
-              <option value="nearest">Más cercanos (GPS)</option>
-              <option value="rating">Mejor calificados</option>
-              <option value="price">Menor precio</option>
-            </select>
+          {/* Ordenar */}
+          <div>
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2 block">Ordenar por</span>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { value: 'recommended', label: '✨ Recomendados', },
+                { value: 'nearest',     label: '📍 Más cercanos', },
+                { value: 'rating',      label: '⭐ Mejor calificados', },
+                { value: 'price',       label: '💰 Menor precio', },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setSortBy(opt.value as any)}
+                  className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer active:scale-95 ${
+                    sortBy === opt.value
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Dynamic Status / Feedback Message & Active Badges */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs">
-        <div className="flex flex-wrap items-center gap-2">
-          {userLocation ? (
-            <span className="font-medium text-emerald-800 flex items-center space-x-1">
-              <Navigation className="w-3.5 h-3.5 text-emerald-600 inline" />
-              <span>Mostrando los más cercanos según tu ubicación actual</span>
-            </span>
-          ) : todayAvailableCount > 0 ? (
-            <span className="font-medium text-emerald-800">
-              Hay {todayAvailableCount} profesionales disponibles hoy listos para atenderte
-            </span>
-          ) : (
-            <span className="text-slate-700">
-              Mostrando {sortedAffiliates.length} profesionales disponibles.
-            </span>
-          )}
-
-          {/* Active Zone Badge */}
-          {(selectedCity || selectedState) && (
-            <span className="inline-flex items-center space-x-1 bg-emerald-50 text-emerald-900 border border-emerald-300 font-semibold px-2.5 py-1 rounded-lg">
-              <MapPin className="w-3 h-3 text-emerald-600" />
-              <span>
-                Zona:{' '}
-                {selectedCity
-                  ? `${selectedCity}${selectedState ? `, ${activeStates.find((s) => s.code === selectedState)?.name || selectedState}` : ''}`
-                  : activeStates.find((s) => s.code === selectedState)?.name || selectedState}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedCity('');
-                  setSelectedState('');
-                }}
-                className="text-emerald-700 hover:text-rose-600 ml-1 font-bold cursor-pointer"
-                title="Quitar filtro de zona"
-              >
-                ×
-              </button>
-            </span>
-          )}
-
-          {/* Active Category Badge */}
-          {selectedCategory !== 'all' && (
-            <span className="inline-flex items-center space-x-1 bg-slate-100 text-slate-800 border border-slate-300 font-semibold px-2.5 py-1 rounded-lg">
-              <Sparkles className="w-3 h-3 text-slate-600" />
-              <span>
-                Categoría: {activeCategories.find((c) => c.id === selectedCategory)?.label || selectedCategory}
-              </span>
-              <button
-                type="button"
-                onClick={() => setSelectedCategory('all')}
-                className="text-slate-600 hover:text-rose-600 ml-1 font-bold cursor-pointer"
-                title="Quitar filtro de categoría"
-              >
-                ×
-              </button>
-            </span>
-          )}
-        </div>
-
-        {(searchTerm || selectedState || selectedCity || selectedCategory !== 'all' || filterTodayOnly || filterTomorrowOnly || filterHighRating) && (
-          <button
-            onClick={resetFilters}
-            className="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center space-x-1 cursor-pointer"
-          >
-            <FilterX className="w-3.5 h-3.5" />
-            <span>Limpiar todos los filtros</span>
-          </button>
+      {/* Dynamic Status / Feedback Message */}
+      <div className="flex items-center px-1 text-xs text-slate-600">
+        {userLocation ? (
+          <span className="font-medium text-emerald-800 flex items-center space-x-1">
+            <Navigation className="w-3.5 h-3.5 text-emerald-600 inline" />
+            <span>Mostrando los más cercanos según tu ubicación actual</span>
+          </span>
+        ) : todayAvailableCount > 0 ? (
+          <span className="font-medium text-emerald-800">
+            ⚡ {todayAvailableCount} disponibles hoy · {sortedAffiliates.length} resultados
+          </span>
+        ) : (
+          <span>
+            {sortedAffiliates.length} profesionales encontrados
+          </span>
         )}
       </div>
 
