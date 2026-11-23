@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Affiliate, SubscriptionPlanType, ServiceItem } from '../types.ts';
 import { DataService } from '../services/dataService.ts';
 import { StripeService } from '../services/stripeService.ts';
@@ -45,99 +45,23 @@ interface PlanDefinition {
 
 const PLANS_CONFIG: PlanDefinition[] = [
   {
-    id: 'prueba',
-    name: 'Plan de Prueba',
-    monthlyPrice: 10,
-    annualMonthlyPrice: 10,
-    description: 'Plan de evaluación por $10 MXN al mes para explorar la plataforma, catálogo y herramientas.',
-    badge: 'Prueba $10 MXN',
-    features: [
-      '1 Mes completo de acceso a la plataforma por solo $10 MXN',
-      'Página web pública (Landing Page) activa en CitasMás',
-      'Catálogo completo de servicios con cobro anticipado',
-      'Confirmaciones y recordatorios por WhatsApp',
-      'Prueba de herramientas de marketing asistidas por IA',
-      'Sin plazo forzoso, cancela en cualquier momento'
-    ]
-  },
-  {
-    id: 'basico',
-    name: 'Plan Básico',
-    monthlyPrice: 239,
-    annualMonthlyPrice: 199,
-    description: 'Para profesionales independientes que buscan agendar y promoverse sin complicaciones.',
-    features: [
-      '1 Video publicitario de 1 minuto producido con IA',
-      '1 Imagen oficial tamaño 9:16 para Stories y Reels',
-      'Etapa 1 de publicidad digital geolocalizada',
-      'Descubre tu cliente ideal (Buyer Personas con IA)',
-      '1 Profesional registrado',
-      '100 Mensajes WhatsApp/mes',
-      'Confirmación de cita automática',
-      'Landing Page básica oficial'
-    ]
-  },
-  {
     id: 'pro',
-    name: 'Plan Pro',
-    monthlyPrice: 469,
-    annualMonthlyPrice: 389,
-    description: 'El plan más popular para profesionales con alto flujo y exposición en redes.',
-    badge: 'Recomendado',
+    name: 'Plan Integral CitasMás',
+    monthlyPrice: 1200,
+    annualMonthlyPrice: 1200,
+    description: 'Acceso total y completo a la plataforma: agenda digital, cobro anticipado Stripe, WhatsApp automatizado, landing page y herramientas de marketing con IA.',
+    badge: 'Plan Único • $1,200 MXN al mes (IVA incluido)',
     features: [
-      'Todo lo del Plan Básico (Video 1 min, Imagen 9:16, Etapa 1 publicidad, Descubre tu cliente ideal)',
-      'MÁS Exposición prolongada en redes sociales y buscadores',
-      'Puedes activar Turbo en Redes Sociales (Turbo 1: +$200, Turbo 2: +$700, Turbo 3: +$1,500)',
-      'WhatsApps Ilimitados',
-      'Recordatorios automáticos 24h y 2h antes',
-      'Citas pagadas anticipadas obligatorias (0% no-shows)',
-      'Reagendamiento inteligente anticaída',
-      'Herramientas de Marketing y Automatización n8n'
-    ]
-  },
-  {
-    id: 'equipo',
-    name: 'Plan Equipo',
-    monthlyPrice: 1139,
-    annualMonthlyPrice: 949,
-    description: 'Para clínicas, estéticas o consultorios con múltiples profesionales.',
-    badge: 'Más Completo',
-    features: [
-      'Hasta 10 profesionales en una misma cuenta',
-      '1 Pack de Marketing Nivel 2 SIN COSTO EXTRA ($0 MXN)',
-      'Todo lo del Plan Pro incluido',
-      'WhatsApps Ilimitados para todo el equipo',
-      'Exposición preferencial en el directorio',
-      'Reportes financieros y comisiones por doctor',
-      'Soporte prioritario 24/7'
-    ]
-  },
-  {
-    id: 'comision',
-    name: 'Por Comisión',
-    monthlyPrice: 0,
-    annualMonthlyPrice: 0,
-    description: 'Paga únicamente un 10% por cada cita pagada y completada.',
-    features: [
-      'Sin costo fijo mensual ($0 MXN)',
-      '10% de comisión por cita completada',
-      'Todo lo del Plan Equipo incluido',
-      'Cancelación sin penalizaciones'
-    ]
-  },
-  {
-    id: 'turbo',
-    name: '📣 Paquetes de Exposición en Redes',
-    monthlyPrice: 300,
-    annualMonthlyPrice: 300,
-    description: 'Maximiza el alcance de los videos y materiales generados con IA en redes sociales. Elige el paquete que se adapte a tu objetivo de crecimiento.',
-    badge: 'Exposición Redes',
-    features: [
-      '📦 Paquete 1 — $300 MXN: Maximiza la exposición básica de tus videos en redes sociales en tu zona local',
-      '📦 Paquete 2 — $600 MXN: Maximiza la exposición con mayor frecuencia, alcance geolocalizado y audiencias ampliadas',
-      '📦 Paquete 3 — $1,500 MXN: Máxima exposición intensiva y prioritaria + posición destacada en el directorio CitasMás',
-      '📊 Panel de Analítica: Alcance, reproducciones, clics y citas obtenidas de la campaña',
-      '🎯 Segmentación por zona, categoría profesional y perfil de cliente ideal',
+      'Página web pública (Landing Page) oficial en CitasMás',
+      'Cobro anticipado obligatorio de citas con Stripe (0% no-shows)',
+      'Confirmaciones y recordatorios automáticos por WhatsApp (24h y 2h antes)',
+      'Herramientas completas de Marketing e Inteligencia Artificial (DeepSeek y Kie.ai)',
+      'Generación de videos publicitarios de 1 min y flyers 9:16 para redes',
+      'Descubrimiento de cliente ideal (Buyer Personas con IA)',
+      'Agenda digital interactiva con citas y servicios ilimitados',
+      'Dispersión directa de tus ganancias a tu cuenta bancaria (CLABE interbancaria)',
+      'Soporte prioritario y actualizaciones continuas',
+      'Tarifa mensual fija de $1,200 MXN con IVA ya incluido'
     ]
   }
 ];
@@ -194,27 +118,15 @@ export const PlanCheckoutModal: React.FC<PlanCheckoutModalProps> = ({
 
   if (!isOpen) return null;
 
-  const currentPlanDef = PLANS_CONFIG.find((p) => p.id === selectedPlanId) || PLANS_CONFIG[1];
+  const currentPlanDef = PLANS_CONFIG.find((p) => p.id === selectedPlanId) || PLANS_CONFIG[0];
 
-  const getTurboCost = (level: 1 | 2 | 3) => {
-    if (level === 1) return 200;
-    if (level === 2) return 700;
-    return 1500;
-  };
+  const getTurboCost = (_level: 1 | 2 | 3) => 0;
 
   const calculateTotal = () => {
     if (isServiceMode && service) {
       return service.price || 0;
     }
-    if (selectedPlanId === 'turbo') {
-      return getTurboCost(turboLevel);
-    }
-    if (currentPlanDef.id === 'comision') return 0;
-    let base = billingCycle === 'annual' ? currentPlanDef.annualMonthlyPrice * 12 : currentPlanDef.monthlyPrice;
-    if (selectedPlanId === 'pro' && includeTurboWithPro) {
-      base += getTurboCost(turboLevel);
-    }
-    return base;
+    return 1200;
   };
 
   const totalAmount = calculateTotal();
@@ -304,19 +216,14 @@ export const PlanCheckoutModal: React.FC<PlanCheckoutModalProps> = ({
         if (affiliate) {
           const updatedAffiliate: Affiliate = {
             ...affiliate,
-            plan: actualPlanType,
-            isTurbo: isTurboActive,
-            turboLevel: isTurboActive ? turboLevel : undefined,
-            turboLevelExtraCost: isTurboActive ? effectiveTurboCost : undefined,
+            plan: 'pro',
+            isTurbo: true,
+            turboLevel: 1,
             planExpiresAt: expirationDate.toISOString(),
             hasAutoPaymentCard: true,
             cardLast4: paymentMethod === 'card' ? cardNumber.slice(-4).replace(/\s/g, '') || '4242' : 'SPEI',
-            // Grant tier benefits if upgraded to Equipo
-            affiliateTierLevel: actualPlanType === 'equipo' ? 3 : actualPlanType === 'pro' ? 2 : 1,
-            freeLevel2PacksAvailable:
-              actualPlanType === 'equipo'
-                ? Math.max(affiliate.freeLevel2PacksAvailable || 0, 1)
-                : affiliate.freeLevel2PacksAvailable || 0
+            affiliateTierLevel: 3,
+            freeLevel2PacksAvailable: Math.max(affiliate.freeLevel2PacksAvailable || 0, 1)
           };
 
           await DataService.getInstance().saveAffiliate(updatedAffiliate);
@@ -326,9 +233,9 @@ export const PlanCheckoutModal: React.FC<PlanCheckoutModalProps> = ({
         const receipt = {
           folio: `SUB-${Math.floor(100000 + Math.random() * 900000)}`,
           authCode: `AUTH-STP-${Date.now().toString().slice(-6)}`,
-          planName: `${currentPlanDef.name}${isTurboActive ? ` + Turbo ${turboLevel} ($${effectiveTurboCost} MXN)` : ''}`,
-          amountPaid: totalAmount,
-          cycle: billingCycle === 'annual' ? 'Anual (Ahorro 2 meses)' : 'Mensual Recurrente',
+          planName: `${currentPlanDef.name} ($1,200 MXN/mes - IVA incluido)`,
+          amountPaid: 1200,
+          cycle: 'Mensual Recurrente (IVA incluido)',
           date: new Date().toLocaleDateString('es-MX', {
             year: 'numeric',
             month: 'long',
@@ -452,81 +359,30 @@ export const PlanCheckoutModal: React.FC<PlanCheckoutModalProps> = ({
           ) : (
             /* CHECKOUT FORM */
             <form onSubmit={handleProcessPayment} className="space-y-6">
-              {/* 1. SELECT PLAN TABS (Only shown if NOT in service mode) */}
+              {/* 1. PLAN SUMMARY CARD (Only shown if NOT in service mode) */}
               {!isServiceMode ? (
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                      1. Plan Seleccionado:
-                    </label>
-
-                    {/* Billing cycle toggle */}
-                    {currentPlanDef.id !== 'comision' && (
-                      <div className="flex items-center bg-slate-100 p-1 rounded-xl text-[11px] font-bold">
-                        <button
-                          type="button"
-                          onClick={() => setBillingCycle('monthly')}
-                          className={`px-2.5 py-1 rounded-lg transition-all ${
-                            billingCycle === 'monthly'
-                              ? 'bg-slate-900 text-white shadow-xs'
-                              : 'text-slate-600 hover:text-slate-900'
-                          }`}
-                        >
-                          Mensual
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setBillingCycle('annual')}
-                          className={`px-2.5 py-1 rounded-lg transition-all flex items-center space-x-1 ${
-                            billingCycle === 'annual'
-                              ? 'bg-emerald-600 text-white shadow-xs'
-                              : 'text-slate-600 hover:text-slate-900'
-                          }`}
-                        >
-                          <span>Anual</span>
-                          <span className="text-[9px] bg-amber-400 text-slate-950 px-1 rounded-full font-black">
-                            -2m
-                          </span>
-                        </button>
+                <div className="bg-emerald-50/50 border border-emerald-200/80 rounded-2xl p-4 sm:p-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="inline-flex items-center space-x-1.5 bg-emerald-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider mb-1">
+                        <Sparkles className="w-3 h-3" />
+                        <span>Membresía Integral CitasMás</span>
                       </div>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-                    {PLANS_CONFIG.filter((p) => p.id !== 'turbo').map((p) => {
-                      const isSelected = selectedPlanId === p.id;
-                      const price =
-                        p.id === 'comision'
-                          ? '10%'
-                          : `$${billingCycle === 'annual' ? p.annualMonthlyPrice : p.monthlyPrice}`;
-                      return (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => setSelectedPlanId(p.id)}
-                          className={`p-3 rounded-2xl border text-left transition-all relative cursor-pointer ${
-                            isSelected
-                              ? 'border-2 border-emerald-500 bg-emerald-50/60 shadow-md ring-2 ring-emerald-400/30'
-                              : 'border-slate-200 hover:border-slate-300 bg-white'
-                          }`}
-                        >
-                          {isSelected && (
-                            <div className="absolute top-2 right-2 text-emerald-600">
-                              <Check className="w-4 h-4" />
-                            </div>
-                          )}
-                          <span className="text-xs font-bold text-slate-900 block truncate">
-                            {p.name}
-                          </span>
-                          <div className="mt-1">
-                            <span className="text-base font-black text-slate-900">{price}</span>
-                            <span className="text-[10px] text-slate-500">
-                              {p.id === 'comision' ? ' /cita' : ' /mes'}
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
+                      <h3 className="text-lg font-black text-slate-900">
+                        {currentPlanDef.name}
+                      </h3>
+                      <p className="text-xs text-slate-600 mt-0.5">
+                        {currentPlanDef.description}
+                      </p>
+                    </div>
+                    <div className="sm:text-right shrink-0">
+                      <div className="text-3xl font-black text-emerald-600">
+                        $1,200 <span className="text-sm font-bold text-slate-600">MXN/mes</span>
+                      </div>
+                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2.5 py-0.5 rounded-md inline-block mt-0.5">
+                        IVA ya incluido
+                      </span>
+                    </div>
                   </div>
                 </div>
               ) : null}
@@ -575,111 +431,32 @@ export const PlanCheckoutModal: React.FC<PlanCheckoutModalProps> = ({
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
                     <div>
                       <span className="text-xs text-emerald-400 font-bold uppercase tracking-wider block">
-                        Resumen del Plan
+                        Resumen del Plan Único
                       </span>
                       <h3 className="text-base font-bold text-white mt-0.5">
-                        {currentPlanDef.name}{' '}
-                        <span className="text-xs text-slate-400 font-normal">
-                          ({billingCycle === 'annual' && currentPlanDef.id !== 'comision' ? 'Anual' : 'Mensual'})
-                        </span>
+                        {currentPlanDef.name}
                       </h3>
                     </div>
 
                     <div className="text-left sm:text-right">
                       <span className="text-2xl font-black text-emerald-400">
-                        ${totalAmount.toLocaleString('es-MX')} MXN
+                        $1,200 MXN
                       </span>
-                      <span className="text-[10px] text-slate-400 block">
-                        {currentPlanDef.id === 'comision'
-                          ? '10% de comisión por cita completada'
-                          : billingCycle === 'annual'
-                          ? 'Cobro anual (incluye 2 meses gratis)'
-                          : 'Facturado mensualmente, cancela cuando quieras'}
+                      <span className="text-[10px] text-emerald-300 block font-semibold">
+                        IVA ya incluido • Facturación mensual recurrente
                       </span>
                     </div>
                   </div>
 
                   {/* Key features of chosen plan */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-300">
-                    {currentPlanDef.features.slice(0, 4).map((feat, fIdx) => (
+                    {currentPlanDef.features.map((feat, fIdx) => (
                       <div key={fIdx} className="flex items-center space-x-1.5">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span className="truncate">{feat}</span>
+                        <span>{feat}</span>
                       </div>
                     ))}
                   </div>
-
-                  {/* Turbo Level Selector for Turbo Plan or Pro Plan */}
-                  {(selectedPlanId === 'turbo' || selectedPlanId === 'pro') && (
-                    <div className="mt-3 pt-3 border-t border-slate-800 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-amber-400 flex items-center space-x-1">
-                          <Zap className="w-3.5 h-3.5 fill-current" />
-                          <span>
-                            {selectedPlanId === 'turbo'
-                              ? 'Selecciona tu Nivel de Impulso Turbo:'
-                              : '¿Deseas potenciar con Turbo en Redes Sociales?'}
-                          </span>
-                        </span>
-                        {selectedPlanId === 'pro' && (
-                          <label className="flex items-center space-x-2 cursor-pointer text-xs">
-                            <input
-                              type="checkbox"
-                              checked={includeTurboWithPro}
-                              onChange={(e) => setIncludeTurboWithPro(e.target.checked)}
-                              className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 accent-emerald-600 cursor-pointer"
-                            />
-                            <span className="text-slate-300 font-semibold">Activar Turbo</span>
-                          </label>
-                        )}
-                      </div>
-
-                      {(selectedPlanId === 'turbo' || includeTurboWithPro) && (
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
-                          {[
-                            {
-                              lvl: 1 as const,
-                              name: 'Turbo 1',
-                              price: 260,
-                              desc: 'Impulso express en redes sociales'
-                            },
-                            {
-                              lvl: 2 as const,
-                              name: 'Turbo 2',
-                              price: 910,
-                              desc: 'Impulso medio con geolocalización'
-                            },
-                            {
-                              lvl: 3 as const,
-                              name: 'Turbo 3',
-                              price: 1950,
-                              desc: 'Máxima exposición #1 e insignia dorada'
-                            }
-                          ].map((t) => (
-                            <button
-                              key={t.lvl}
-                              type="button"
-                              onClick={() => {
-                                setTurboLevel(t.lvl);
-                                if (selectedPlanId === 'pro') setIncludeTurboWithPro(true);
-                              }}
-                              className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                                turboLevel === t.lvl && (selectedPlanId === 'turbo' || includeTurboWithPro)
-                                  ? 'border-amber-400 bg-amber-400/20 text-white shadow-sm ring-1 ring-amber-400'
-                                  : 'border-slate-800 bg-slate-900/80 text-slate-300 hover:border-slate-700'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="font-black text-xs text-amber-300">{t.name}</span>
-                                <span className="text-xs font-bold text-white">+${t.price} MXN</span>
-                              </div>
-                              <p className="text-[10px] text-slate-400 mt-1 leading-tight">{t.desc}</p>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               )}
 
