@@ -61,7 +61,7 @@ export const PromoterDashboardView: React.FC<Props> = ({
 
   // Simulator state
   const [simAffiliatesCount, setSimAffiliatesCount] = useState<number>(15);
-  const [simAveragePlan, setSimAveragePlan] = useState<number>(599); // 599 Pro or 869 Equipo
+  const [simAveragePlan, setSimAveragePlan] = useState<number>(1200); // Plan único $1,200 MXN/mes
 
   // Payout request modal / state
   const [isPayoutModalOpen, setIsPayoutModalOpen] = useState<boolean>(false);
@@ -494,20 +494,9 @@ export const PromoterDashboardView: React.FC<Props> = ({
 
           <div className="inline-flex items-center space-x-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
             <button
-              onClick={() => setSimAveragePlan(599)}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                simAveragePlan === 599 ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
-              }`}
+              className="px-3 py-1.5 rounded-lg bg-white text-slate-900 shadow-xs cursor-default"
             >
-              Plan Pro ($599/m)
-            </button>
-            <button
-              onClick={() => setSimAveragePlan(869)}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                simAveragePlan === 869 ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
-              }`}
-            >
-              Plan Equipo ($869/m)
+              Plan Integral ($1,200/m)
             </button>
           </div>
         </div>
