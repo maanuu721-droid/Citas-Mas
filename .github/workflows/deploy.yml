@@ -33,7 +33,7 @@ jobs:
         run: bunx vite build
         env:
           NODE_ENV: production
-          VITE_STRIPE_PUBLISHABLE_KEY: pk_live_51Ue3CSK0YlOOixVDEyxAk408xePio2UamtW2e0XXgjQdUXvezs7ds9eyeCxmiqpDw25SkozZCxDgPjGCOgvFm3Tl00XKhVhB7K
+          VITE_STRIPE_PUBLISHABLE_KEY: pk_test_lSViyjTjDSaNiuLuSqZXRFLN00KFh6HAV1
 
       - name: Preserve CNAME
         run: cp CNAME dist/CNAME
