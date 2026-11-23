@@ -9,10 +9,10 @@ import Stripe from 'stripe';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Initialize Stripe clients with LIVE credentials (env vars take priority)
-// NOTE: Keys must be set as environment variables on the VPS — never commit secrets to git.
-const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || '';
-const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY || 'pk_live_51Ue3CSK0YlOOixVDEyxAk408xePio2UamtW2e0XXgjQdUXvezs7ds9eyeCxmiqpDw25SkozZCxDgPjGCOgvFm3Tl00XKhVhB7K';
+// Initialize Stripe clients (Test Mode by default or from env vars)
+// NOTE: Keys can be set as environment variables on the VPS or local .env
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || 'sk_test_ujTsBZpqnEku8x0ty6wDbq9z00KP9gKdBv';
+const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY || 'pk_test_lSViyjTjDSaNiuLuSqZXRFLN00KFh6HAV1';
 const STRIPE_SUBSCRIPTION_KEY = process.env.STRIPE_SUBSCRIPTION_KEY || STRIPE_SECRET_KEY;
 const STRIPE_GENERAL_RESTRICTED_KEY = process.env.STRIPE_GENERAL_RESTRICTED_KEY || STRIPE_SECRET_KEY;
 
@@ -617,6 +617,7 @@ Genera un JSON estricto con:
     try {
       const { planId, planName, priceMxn, affiliateId, affiliateEmail, originUrl } = req.body;
       const baseUrl = originUrl || req.headers.origin || 'http://localhost:3000';
+      const finalPriceMxn = Number(priceMxn) > 0 ? Number(priceMxn) : 1200;
 
       const session = await stripeSubscriptions.checkout.sessions.create({
         payment_method_types: ['card'],
@@ -626,10 +627,10 @@ Genera un JSON estricto con:
             price_data: {
               currency: 'mxn',
               product_data: {
-                name: `Citas Más MX: Membresía Plan ${planName || planId}`,
-                description: `Suscripción mensual recurrente para gestión de citas y marketing digital`,
+                name: `Citas Más MX: Membresía ${planName || 'Plan Integral'} ($1,200 MXN/mes)`,
+                description: `Suscripción mensual recurrente todo incluido (IVA ya incluido)`,
               },
-              unit_amount: Math.round(Number(priceMxn) * 100),
+              unit_amount: Math.round(finalPriceMxn * 100),
               recurring: {
                 interval: 'month',
               },
