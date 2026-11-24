@@ -33,7 +33,10 @@ import {
   Lock,
   Package,
   Trash2,
-  User
+  User,
+  Download,
+  FolderOpen,
+  Megaphone
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
@@ -44,7 +47,10 @@ import {
   SubscriptionPlanType,
   AffiliateApprovalStatus,
   VerificationTier,
-  PromotionOrder
+  PromotionOrder,
+  ExposureRequest,
+  AdminMarketingAsset,
+  KieAiModel
 } from '../types.ts';
 import { DataService } from '../services/dataService.ts';
 
@@ -55,7 +61,7 @@ interface Props {
   onLogoutAdmin?: () => void;
 }
 
-type AdminTab = 'marketing_requests' | 'subscriptions' | 'affiliates' | 'users' | 'appointments' | 'promotion_orders' | 'settings';
+type AdminTab = 'marketing_requests' | 'subscriptions' | 'affiliates' | 'users' | 'ambassadors' | 'appointments' | 'promotion_orders' | 'exposure_requests' | 'affiliate_resources' | 'admin_marketing_ia' | 'settings';
 
 export const AdminDashboardView: React.FC<Props> = ({
   onBackToApp,
@@ -75,6 +81,14 @@ export const AdminDashboardView: React.FC<Props> = ({
   const [expiringSubscriptions, setExpiringSubscriptions] = useState<any[]>([]);
   const [promotionOrders, setPromotionOrders] = useState<PromotionOrder[]>([]);
   const [newPurchaseAlert, setNewPurchaseAlert] = useState<PromotionOrder | null>(null);
+  const [exposureRequests, setExposureRequests] = useState<ExposureRequest[]>([]);
+  const [affiliateResources, setAffiliateResources] = useState<any[]>([]);
+  const [adminAssets, setAdminAssets] = useState<AdminMarketingAsset[]>([]);
+  const [adminAIPrompt, setAdminAIPrompt] = useState('');
+  const [adminAIMediaType, setAdminAIMediaType] = useState<'image' | 'video'>('image');
+  const [adminAIKieModel, setAdminAIKieModel] = useState<KieAiModel>('grok-image-2');
+  const [isGeneratingAdminAsset, setIsGeneratingAdminAsset] = useState(false);
+  const [adminAIMessages, setAdminAIMessages] = useState<{ role: 'user' | 'ai'; text: string; mediaUrl?: string; type?: 'image' | 'video' }[]>([]);
   const [metrics, setMetrics] = useState({
     totalAffiliates: 0,
     pendingApprovals: 0,
@@ -102,13 +116,16 @@ export const AdminDashboardView: React.FC<Props> = ({
     try {
       setLoading(true);
       const dataService = DataService.getInstance();
-      const [mkt, affs, apts, exp, met, usrList] = await Promise.all([
+      const [mkt, affs, apts, exp, met, usrList, expReqs, allAssets, admAssets] = await Promise.all([
         dataService.getMarketingRequests(),
         dataService.getAffiliates(),
         dataService.getAppointments(),
         dataService.getExpiringSubscriptions(7),
         dataService.getAdminMetrics(),
-        dataService.getAllUsers()
+        dataService.getAllUsers(),
+        dataService.getExposureRequests(),
+        dataService.getAllMarketingAssetsForAdmin(),
+        dataService.getAdminMarketingAssets()
       ]);
 
       setMarketingRequests(mkt);
@@ -117,6 +134,9 @@ export const AdminDashboardView: React.FC<Props> = ({
       setAppointments(apts);
       setExpiringSubscriptions(exp);
       setMetrics(met);
+      setExposureRequests(expReqs);
+      setAffiliateResources(allAssets);
+      setAdminAssets(admAssets);
     } catch (err) {
       console.error('Error loading admin dashboard data:', err);
       showToast('Error al cargar datos del panel de administración', 'error');
@@ -167,6 +187,79 @@ export const AdminDashboardView: React.FC<Props> = ({
     setTimeout(() => {
       setToastMessage(null);
     }, 4500);
+  };
+
+  const handleApproveExposure = async (id: string) => {
+    await DataService.getInstance().updateExposureRequest(id, {
+      status: 'approved',
+      reviewedAt: new Date().toISOString()
+    });
+    setExposureRequests(prev => prev.map(r => (r.id === id ? { ...r, status: 'approved' } : r)));
+    showToast('✅ Solicitud de exposición aprobada', 'success');
+  };
+
+  const handleRejectExposure = async (id: string) => {
+    await DataService.getInstance().updateExposureRequest(id, {
+      status: 'rejected',
+      reviewedAt: new Date().toISOString()
+    });
+    setExposureRequests(prev => prev.map(r => (r.id === id ? { ...r, status: 'rejected' } : r)));
+    showToast('Solicitud rechazada', 'info');
+  };
+
+  const handleAdminAIGenerate = async () => {
+    if (!adminAIPrompt.trim() || isGeneratingAdminAsset) return;
+    const userMsg = adminAIPrompt.trim();
+    setAdminAIMessages(prev => [...prev, { role: 'user', text: userMsg }]);
+    setAdminAIPrompt('');
+    setIsGeneratingAdminAsset(true);
+
+    try {
+      const res = await fetch('https://n8n.bahiago.tech/webhook/admin-marketing-ia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminEmail,
+          userPrompt: userMsg,
+          requestType: adminAIMediaType,
+          kieModel: adminAIKieModel,
+          callbackId: `admin-${Date.now()}`
+        })
+      });
+      const data = await res.json();
+      const mediaUrl = data.mediaUrl || data.imageUrl || data.videoUrl || '';
+      setAdminAIMessages(prev => [
+        ...prev,
+        {
+          role: 'ai',
+          text: data.message || `✅ ${adminAIMediaType === 'video' ? 'Video' : 'Imagen'} generado con Kie.ai (${adminAIKieModel}).`,
+          mediaUrl,
+          type: adminAIMediaType
+        }
+      ]);
+      if (mediaUrl) {
+        const newAsset: AdminMarketingAsset = {
+          id: `admin-asset-${Date.now()}`,
+          requestedBy: adminEmail,
+          type: adminAIMediaType,
+          userPrompt: userMsg,
+          kieModel: adminAIKieModel,
+          mediaUrl,
+          status: 'ready',
+          createdAt: new Date().toISOString(),
+          readyAt: new Date().toISOString()
+        };
+        await DataService.getInstance().saveAdminMarketingAsset(newAsset);
+        setAdminAssets(prev => [newAsset, ...prev]);
+      }
+    } catch {
+      setAdminAIMessages(prev => [
+        ...prev,
+        { role: 'ai', text: '❌ Error al conectar con n8n/Kie.ai. Verifica que el workflow admin-marketing-ia esté activo.' }
+      ]);
+    } finally {
+      setIsGeneratingAdminAsset(false);
+    }
   };
 
   // 1. Authorize & Validate Payment
@@ -659,6 +752,63 @@ export const AdminDashboardView: React.FC<Props> = ({
           >
             <Calendar className="w-4 h-4" />
             <span>Auditoría de Citas</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('exposure_requests')}
+            className={`px-4 py-3 text-xs sm:text-sm font-bold flex items-center space-x-2 border-b-2 transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'exposure_requests'
+                ? 'border-amber-400 text-amber-400 bg-slate-900/40'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Megaphone className="w-4 h-4" />
+            <span>Solicitudes de Exposición</span>
+            {exposureRequests.filter(r => r.status === 'pending_review').length > 0 && (
+              <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-1.5 py-0.2 rounded-full">
+                {exposureRequests.filter(r => r.status === 'pending_review').length}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('affiliate_resources')}
+            className={`px-4 py-3 text-xs sm:text-sm font-bold flex items-center space-x-2 border-b-2 transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'affiliate_resources'
+                ? 'border-cyan-400 text-cyan-400 bg-slate-900/40'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <FolderOpen className="w-4 h-4" />
+            <span>Recursos Afiliados ({affiliateResources.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('admin_marketing_ia')}
+            className={`px-4 py-3 text-xs sm:text-sm font-bold flex items-center space-x-2 border-b-2 transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'admin_marketing_ia'
+                ? 'border-purple-400 text-purple-400 bg-slate-900/40'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Marketing IA Admin (Kie.ai)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('ambassadors')}
+            className={`px-4 py-3 text-xs sm:text-sm font-bold flex items-center space-x-2 border-b-2 transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'ambassadors'
+                ? 'border-pink-400 text-pink-400 bg-slate-900/40'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Award className="w-4 h-4" />
+            <span>Embajadores</span>
           </button>
 
           <button
@@ -1335,6 +1485,327 @@ export const AdminDashboardView: React.FC<Props> = ({
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ====================================================================
+            TAB: SOLICITUDES DE EXPOSICIÓN EN REDES CITASMÁS
+            ==================================================================== */}
+        {activeTab === 'exposure_requests' && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-black text-white flex items-center gap-2">
+              <Megaphone className="w-5 h-5 text-amber-400" />
+              <span>Solicitudes de Exposición en Redes de CitasMás</span>
+            </h2>
+            {exposureRequests.length === 0 ? (
+              <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-8 text-center text-slate-400 text-sm">
+                No hay solicitudes de exposición todavía.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {exposureRequests.map(req => (
+                  <div key={req.id} className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row gap-4">
+                    {req.assetUrl && (
+                      req.assetType === 'video' ? (
+                        <video src={req.assetUrl} controls className="w-48 h-32 object-cover rounded-xl bg-black shrink-0" />
+                      ) : (
+                        <img src={req.assetUrl} alt="Asset" className="w-48 h-32 object-cover rounded-xl bg-black shrink-0" />
+                      )
+                    )}
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-white text-sm">{req.affiliateName}</span>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                          req.status === 'pending_review' ? 'bg-amber-500/20 text-amber-300' :
+                          req.status === 'approved' ? 'bg-emerald-500/20 text-emerald-300' :
+                          'bg-red-500/20 text-red-300'
+                        }`}>
+                          {req.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400">
+                        Tipo: {req.assetType === 'video' ? '🎬 Video' : '🖼️ Paquete de Imágenes'} • {new Date(req.requestedAt).toLocaleString('es-MX')}
+                      </p>
+                      <div className="bg-slate-950 border border-slate-800 rounded-xl p-3">
+                        <p className="text-[11px] font-bold text-slate-400 mb-1">Texto de publicación:</p>
+                        <p className="text-xs text-slate-200 italic">"{req.publicationText}"</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {req.assetUrl && (
+                          <a
+                            href={req.assetUrl}
+                            download={`exposicion-${req.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5"
+                          >
+                            <Download className="w-3.5 h-3.5" /> Descargar Asset
+                          </a>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleApproveExposure(req.id)}
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold"
+                        >
+                          ✅ Aprobar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRejectExposure(req.id)}
+                          className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-xs font-bold"
+                        >
+                          ✗ Rechazar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ====================================================================
+            TAB: TODOS LOS RECURSOS GENERADOS POR AFILIADOS
+            ==================================================================== */}
+        {activeTab === 'affiliate_resources' && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-black text-white flex items-center gap-2">
+              <FolderOpen className="w-5 h-5 text-cyan-400" />
+              <span>Recursos Generados por Afiliados</span>
+            </h2>
+            {affiliateResources.length === 0 ? (
+              <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-8 text-center text-slate-400 text-sm">
+                Aún no hay recursos generados por afiliados.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {affiliateResources.map((res: any) => {
+                  const previewUrl = res.videoUrl || res.images?.publicitaria || res.mediaUrl || '';
+                  const isVid = Boolean(res.videoUrl);
+                  return (
+                    <div key={res.id} className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden">
+                      <div className="h-44 bg-black flex items-center justify-center">
+                        {previewUrl ? (
+                          isVid ? (
+                            <video src={previewUrl} controls className="w-full h-full object-cover" />
+                          ) : (
+                            <img src={previewUrl} alt="Recurso" className="w-full h-full object-cover" />
+                          )
+                        ) : (
+                          <FolderOpen className="w-8 h-8 text-slate-700" />
+                        )}
+                      </div>
+                      <div className="p-4 space-y-2">
+                        <p className="text-xs font-bold text-white">{res.serviceName || res.videoType || 'Asset de Marketing'}</p>
+                        <p className="text-[11px] text-slate-400">Afiliado: {res.affiliateId}</p>
+                        {previewUrl && (
+                          <a
+                            href={previewUrl}
+                            download={`recurso-${res.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold"
+                          >
+                            <Download className="w-3.5 h-3.5" /> Descargar
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ====================================================================
+            TAB: HERRAMIENTAS DE MARKETING PROPIAS DEL ADMIN (AGENTE IA + KIE.AI)
+            ==================================================================== */}
+        {activeTab === 'admin_marketing_ia' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-slate-900/80 border border-slate-800 rounded-3xl p-6 flex flex-col h-[600px]">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black text-white">Agente de Marketing IA — CitasMás</h2>
+                    <p className="text-xs text-slate-400">Solicita imágenes o videos personalizados usando las APIs de Kie.ai</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={adminAIMediaType}
+                    onChange={e => {
+                      const t = e.target.value as 'image' | 'video';
+                      setAdminAIMediaType(t);
+                      setAdminAIKieModel(t === 'video' ? 'grok-video-1.5' : 'grok-image-2');
+                    }}
+                    className="bg-slate-950 border border-slate-700 text-white text-xs rounded-xl px-3 py-2"
+                  >
+                    <option value="image">🖼️ Imagen</option>
+                    <option value="video">🎬 Video</option>
+                  </select>
+                  <select
+                    value={adminAIKieModel}
+                    onChange={e => setAdminAIKieModel(e.target.value as KieAiModel)}
+                    className="bg-slate-950 border border-slate-700 text-purple-300 text-xs rounded-xl px-3 py-2"
+                  >
+                    <option value="grok-image-2">Kie: grok-image-2</option>
+                    <option value="grok-image-to-image">Kie: grok-image-to-image</option>
+                    <option value="grok-video-1.5">Kie: grok-video-1.5</option>
+                    <option value="grok-image-to-video">Kie: grok-image-to-video</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-3 mb-4 bg-slate-950/60 rounded-2xl p-4 border border-slate-800">
+                {adminAIMessages.length === 0 && (
+                  <div className="text-center py-12 text-slate-500">
+                    <Sparkles className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">Escribe qué imagen o video personalizado necesitas para CitasMás.</p>
+                    <p className="text-xs mt-1 text-slate-600">El agente IA refinará tu solicitud y llamará a la API de Kie.ai seleccionada.</p>
+                  </div>
+                )}
+                {adminAIMessages.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                      msg.role === 'user' ? 'bg-purple-600 text-white' : 'bg-slate-900 border border-slate-700 text-slate-200'
+                    }`}>
+                      <p className="text-xs whitespace-pre-wrap">{msg.text}</p>
+                      {msg.mediaUrl && (
+                        <div className="mt-2 space-y-2">
+                          {msg.type === 'video' ? (
+                            <video src={msg.mediaUrl} controls className="rounded-lg max-w-full" />
+                          ) : (
+                            <img src={msg.mediaUrl} alt="Admin Asset" className="rounded-lg max-w-full" />
+                          )}
+                          <a
+                            href={msg.mediaUrl}
+                            download={`citasmas-admin-${i}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 font-bold"
+                          >
+                            <Download className="w-3.5 h-3.5" /> Descargar Asset
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {isGeneratingAdminAsset && (
+                  <div className="flex justify-start">
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl px-4 py-3 flex items-center gap-2 text-xs text-slate-300">
+                      <RefreshCw className="w-4 h-4 animate-spin text-purple-400" />
+                      <span>Generando con Agente IA + Kie.ai ({adminAIKieModel})...</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <textarea
+                  value={adminAIPrompt}
+                  onChange={e => setAdminAIPrompt(e.target.value)}
+                  placeholder="Describe la imagen o video que deseas crear para CitasMás..."
+                  className="flex-1 resize-none bg-slate-950 border border-slate-700 text-white rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-purple-500"
+                  rows={2}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleAdminAIGenerate();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleAdminAIGenerate}
+                  disabled={!adminAIPrompt.trim() || isGeneratingAdminAsset}
+                  className="px-5 py-2 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl font-bold disabled:opacity-50"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 space-y-3 max-h-[600px] overflow-y-auto">
+              <h3 className="text-sm font-bold text-white">Historial Generado ({adminAssets.length})</h3>
+              {adminAssets.length === 0 ? (
+                <p className="text-xs text-slate-500">Aún no hay recursos generados por el administrador.</p>
+              ) : (
+                adminAssets.map(a => (
+                  <div key={a.id} className="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
+                    {a.mediaUrl && (
+                      a.type === 'video' ? (
+                        <video src={a.mediaUrl} controls className="w-full h-28 object-cover rounded-lg" />
+                      ) : (
+                        <img src={a.mediaUrl} alt="Admin" className="w-full h-28 object-cover rounded-lg" />
+                      )
+                    )}
+                    <p className="text-[11px] text-slate-300 line-clamp-2">{a.userPrompt}</p>
+                    <div className="flex items-center justify-between text-[10px] text-slate-500">
+                      <span>{a.kieModel}</span>
+                      {a.mediaUrl && (
+                        <a href={a.mediaUrl} download target="_blank" rel="noopener noreferrer" className="text-emerald-400 font-bold">
+                          Descargar
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ====================================================================
+            TAB: EMBAJADORES
+            ==================================================================== */}
+        {activeTab === 'ambassadors' && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-black text-white flex items-center gap-2">
+              <Award className="w-5 h-5 text-pink-400" />
+              <span>Gestión de Embajadores</span>
+            </h2>
+            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400 uppercase text-[11px]">
+                    <th className="py-3 px-4">Nombre</th>
+                    <th className="py-3 px-4">Email</th>
+                    <th className="py-3 px-4">Código Embajador</th>
+                    <th className="py-3 px-4">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {users.filter(u => u.role === 'promoter').length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="py-8 text-center text-slate-500">No hay embajadores registrados.</td>
+                    </tr>
+                  ) : (
+                    users.filter(u => u.role === 'promoter').map(emb => (
+                      <tr key={emb.uid} className="hover:bg-slate-800/40">
+                        <td className="py-3 px-4 font-bold text-white">{emb.displayName}</td>
+                        <td className="py-3 px-4 text-slate-300">{emb.email}</td>
+                        <td className="py-3 px-4 font-mono text-emerald-400">{emb.promoterCode || '—'}</td>
+                        <td className="py-3 px-4">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteUser(emb.uid, emb.email || emb.displayName)}
+                            className="px-2.5 py-1 bg-red-500/20 text-red-300 rounded-lg font-bold hover:bg-red-500/30"
+                          >
+                            Eliminar
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         )}

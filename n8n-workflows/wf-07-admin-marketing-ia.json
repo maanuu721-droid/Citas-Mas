@@ -1,0 +1,138 @@
+﻿{
+    "settings":  {
+                     "executionOrder":  "v1"
+                 },
+    "name":  "WF-07: Admin IA — Marketing CitasMas",
+    "connections":  {
+                        "Webhook":  {
+                                        "main":  [
+                                                     {
+                                                         "node":  "DeepSeek Admin",
+                                                         "type":  "main",
+                                                         "index":  0
+                                                     }
+                                                 ]
+                                    },
+                        "Kie.ai Admin":  {
+                                             "main":  [
+                                                          {
+                                                              "node":  "Responder",
+                                                              "type":  "main",
+                                                              "index":  0
+                                                          }
+                                                      ]
+                                         },
+                        "DeepSeek Admin":  {
+                                               "main":  [
+                                                            {
+                                                                "node":  "Kie.ai Admin",
+                                                                "type":  "main",
+                                                                "index":  0
+                                                            }
+                                                        ]
+                                           }
+                    },
+    "nodes":  [
+                  {
+                      "id":  "wh-adm",
+                      "name":  "Webhook",
+                      "type":  "n8n-nodes-base.webhook",
+                      "position":  [
+                                       100,
+                                       300
+                                   ],
+                      "parameters":  {
+                                         "path":  "admin-marketing-ia",
+                                         "responseMode":  "responseNode",
+                                         "options":  {
+
+                                                     },
+                                         "httpMethod":  "POST"
+                                     },
+                      "typeVersion":  2
+                  },
+                  {
+                      "id":  "ds-adm",
+                      "name":  "DeepSeek Admin",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "position":  [
+                                       400,
+                                       300
+                                   ],
+                      "parameters":  {
+                                         "headerParameters":  {
+                                                                  "parameters":  [
+                                                                                     {
+                                                                                         "value":  "Bearer sk-cf162528184047e8a46e90a388ab90d6",
+                                                                                         "name":  "Authorization"
+                                                                                     },
+                                                                                     {
+                                                                                         "value":  "application/json",
+                                                                                         "name":  "Content-Type"
+                                                                                     }
+                                                                                 ]
+                                                              },
+                                         "method":  "POST",
+                                         "specifyBody":  "json",
+                                         "jsonBody":  "={\"model\":\"deepseek-chat\",\"messages\":[{\"role\":\"system\",\"content\":\"Refina el prompt en ingles para Kie.ai.\"},{\"role\":\"user\",\"content\":\"{{$json.userPrompt}}\"}]}",
+                                         "url":  "https://api.deepseek.com/chat/completions",
+                                         "sendHeaders":  true,
+                                         "options":  {
+
+                                                     },
+                                         "sendBody":  true
+                                     },
+                      "typeVersion":  4.2
+                  },
+                  {
+                      "id":  "kie-adm",
+                      "name":  "Kie.ai Admin",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "position":  [
+                                       700,
+                                       300
+                                   ],
+                      "parameters":  {
+                                         "headerParameters":  {
+                                                                  "parameters":  [
+                                                                                     {
+                                                                                         "value":  "Bearer f55354afcfb4884b77b501d1b5e91d37",
+                                                                                         "name":  "Authorization"
+                                                                                     },
+                                                                                     {
+                                                                                         "value":  "application/json",
+                                                                                         "name":  "Content-Type"
+                                                                                     }
+                                                                                 ]
+                                                              },
+                                         "method":  "POST",
+                                         "specifyBody":  "json",
+                                         "jsonBody":  "={\"model\":\"{{$(\u0027Webhook\u0027).first().json.kieModel || \u0027grok-image-2\u0027}}\",\"prompt\":\"{{$json.choices[0].message.content}}\",\"width\":1024,\"height\":1024,\"n\":1}",
+                                         "url":  "https://api.kie.ai/api/v1/images/generations",
+                                         "sendHeaders":  true,
+                                         "options":  {
+
+                                                     },
+                                         "sendBody":  true
+                                     },
+                      "typeVersion":  4.2
+                  },
+                  {
+                      "id":  "resp-adm",
+                      "name":  "Responder",
+                      "type":  "n8n-nodes-base.respondToWebhook",
+                      "position":  [
+                                       1000,
+                                       300
+                                   ],
+                      "parameters":  {
+                                         "responseBody":  "={{JSON.stringify($json)}}",
+                                         "respondWith":  "json",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "typeVersion":  1.1
+                  }
+              ]
+}

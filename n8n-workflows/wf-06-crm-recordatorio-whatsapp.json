@@ -1,0 +1,54 @@
+﻿{
+    "settings":  {
+                     "executionOrder":  "v1"
+                 },
+    "name":  "WF-06: CRM — Recordatorio WhatsApp Afiliado",
+    "connections":  {
+                        "Webhook":  {
+                                        "main":  [
+                                                     {
+                                                         "node":  "Responder",
+                                                         "type":  "main",
+                                                         "index":  0
+                                                     }
+                                                 ]
+                                    }
+                    },
+    "nodes":  [
+                  {
+                      "id":  "wh-crm",
+                      "name":  "Webhook",
+                      "type":  "n8n-nodes-base.webhook",
+                      "position":  [
+                                       100,
+                                       300
+                                   ],
+                      "parameters":  {
+                                         "path":  "crm-recordatorio",
+                                         "responseMode":  "responseNode",
+                                         "options":  {
+
+                                                     },
+                                         "httpMethod":  "POST"
+                                     },
+                      "typeVersion":  2
+                  },
+                  {
+                      "id":  "resp-crm",
+                      "name":  "Responder",
+                      "type":  "n8n-nodes-base.respondToWebhook",
+                      "position":  [
+                                       400,
+                                       300
+                                   ],
+                      "parameters":  {
+                                         "responseBody":  "={\"ok\":true,\"queued\":true}",
+                                         "respondWith":  "json",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "typeVersion":  1.1
+                  }
+              ]
+}

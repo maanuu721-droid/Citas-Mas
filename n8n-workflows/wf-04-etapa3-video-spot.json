@@ -1,0 +1,96 @@
+﻿{
+    "settings":  {
+                     "executionOrder":  "v1"
+                 },
+    "name":  "WF-04: Etapa 3 — Video Spot Audio ES",
+    "connections":  {
+                        "Kie.ai Video Spot":  {
+                                                  "main":  [
+                                                               {
+                                                                   "node":  "Responder",
+                                                                   "type":  "main",
+                                                                   "index":  0
+                                                               }
+                                                           ]
+                                              },
+                        "Webhook":  {
+                                        "main":  [
+                                                     {
+                                                         "node":  "Kie.ai Video Spot",
+                                                         "type":  "main",
+                                                         "index":  0
+                                                     }
+                                                 ]
+                                    }
+                    },
+    "nodes":  [
+                  {
+                      "id":  "wh-e3",
+                      "name":  "Webhook",
+                      "type":  "n8n-nodes-base.webhook",
+                      "position":  [
+                                       100,
+                                       300
+                                   ],
+                      "parameters":  {
+                                         "path":  "marketing-etapa3-video-spot",
+                                         "responseMode":  "responseNode",
+                                         "options":  {
+
+                                                     },
+                                         "httpMethod":  "POST"
+                                     },
+                      "typeVersion":  2
+                  },
+                  {
+                      "id":  "kie-e3",
+                      "name":  "Kie.ai Video Spot",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "position":  [
+                                       400,
+                                       300
+                                   ],
+                      "parameters":  {
+                                         "headerParameters":  {
+                                                                  "parameters":  [
+                                                                                     {
+                                                                                         "value":  "Bearer f55354afcfb4884b77b501d1b5e91d37",
+                                                                                         "name":  "Authorization"
+                                                                                     },
+                                                                                     {
+                                                                                         "value":  "application/json",
+                                                                                         "name":  "Content-Type"
+                                                                                     }
+                                                                                 ]
+                                                              },
+                                         "method":  "POST",
+                                         "specifyBody":  "json",
+                                         "jsonBody":  "={\"model\":\"grok-video-1.5\",\"prompt\":\"Spot publicitario en espanol con musica para {{$json.businessName}} - {{$json.serviceName}}: {{$json.promotionText}}\",\"image_url\":\"{{$json.referenceImageUrl}}\",\"duration\":30,\"audio\":true,\"language\":\"es\"}",
+                                         "url":  "https://api.kie.ai/api/v1/videos/generations",
+                                         "sendHeaders":  true,
+                                         "options":  {
+
+                                                     },
+                                         "sendBody":  true
+                                     },
+                      "typeVersion":  4.2
+                  },
+                  {
+                      "id":  "resp-e3",
+                      "name":  "Responder",
+                      "type":  "n8n-nodes-base.respondToWebhook",
+                      "position":  [
+                                       700,
+                                       300
+                                   ],
+                      "parameters":  {
+                                         "responseBody":  "={{JSON.stringify($json)}}",
+                                         "respondWith":  "json",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "typeVersion":  1.1
+                  }
+              ]
+}

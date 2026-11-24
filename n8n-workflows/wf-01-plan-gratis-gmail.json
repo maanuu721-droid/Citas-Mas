@@ -1,0 +1,83 @@
+﻿{
+    "settings":  {
+                     "executionOrder":  "v1"
+                 },
+    "name":  "WF-01: Plan Gratis — Notificacion Gmail",
+    "connections":  {
+                        "Gmail Notificacion":  {
+                                                   "main":  [
+                                                                {
+                                                                    "node":  "Responder OK",
+                                                                    "type":  "main",
+                                                                    "index":  0
+                                                                }
+                                                            ]
+                                               },
+                        "Webhook Entrada":  {
+                                                "main":  [
+                                                             {
+                                                                 "node":  "Gmail Notificacion",
+                                                                 "type":  "main",
+                                                                 "index":  0
+                                                             }
+                                                         ]
+                                            }
+                    },
+    "nodes":  [
+                  {
+                      "id":  "webhook-gratis",
+                      "name":  "Webhook Entrada",
+                      "type":  "n8n-nodes-base.webhook",
+                      "position":  [
+                                       250,
+                                       300
+                                   ],
+                      "parameters":  {
+                                         "path":  "plan-gratis-notificacion",
+                                         "responseMode":  "responseNode",
+                                         "options":  {
+
+                                                     },
+                                         "httpMethod":  "POST"
+                                     },
+                      "typeVersion":  2
+                  },
+                  {
+                      "id":  "gmail-send",
+                      "name":  "Gmail Notificacion",
+                      "type":  "n8n-nodes-base.gmail",
+                      "position":  [
+                                       550,
+                                       300
+                                   ],
+                      "parameters":  {
+                                         "message":  "=\u003cdiv style=\u0027font-family:Arial,sans-serif;padding:20px\u0027\u003e\u003ch2\u003eNueva Cita Agendada\u003c/h2\u003e\u003cp\u003e\u003cstrong\u003eNegocio:\u003c/strong\u003e {{$json.affiliateBusinessName}}\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eCliente:\u003c/strong\u003e {{$json.clientName}}\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eServicio:\u003c/strong\u003e {{$json.serviceName}}\u003c/p\u003e\u003cp\u003e\u003cstrong\u003eFecha:\u003c/strong\u003e {{$json.date}} {{$json.time}}\u003c/p\u003e\u003c/div\u003e",
+                                         "fromEmail":  "notificaciones@citasmas.com",
+                                         "subject":  "=Nueva cita: {{$json.clientName}} — {{$json.date}} {{$json.time}}",
+                                         "options":  {
+
+                                                     },
+                                         "emailType":  "html",
+                                         "toEmail":  "={{$json.affiliateEmail}}"
+                                     },
+                      "typeVersion":  2.1
+                  },
+                  {
+                      "id":  "respond-gratis",
+                      "name":  "Responder OK",
+                      "type":  "n8n-nodes-base.respondToWebhook",
+                      "position":  [
+                                       850,
+                                       300
+                                   ],
+                      "parameters":  {
+                                         "responseBody":  "={\"ok\":true,\"message\":\"Email enviado\"}",
+                                         "respondWith":  "json",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "typeVersion":  1.1
+                  }
+              ]
+}

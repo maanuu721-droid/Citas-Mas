@@ -471,35 +471,51 @@ export const BookingModal: React.FC<Props> = ({
       updatedAt: new Date().toISOString()
     };
 
-    // Generate automated Twilio WhatsApp messages for BOTH parties:
-    // 1. WhatsApp to the client
-    const clientWaMsg = createWhatsAppConfirmationMessage({
-      id: newAppointment.id,
-      clientName: newAppointment.clientName,
-      affiliateName: newAppointment.affiliateName,
-      serviceName: newAppointment.serviceName,
-      servicePrice: newAppointment.servicePrice,
-      date: newAppointment.date,
-      time: newAppointment.time,
-      address: affiliate.address
-    });
+    const isFreePlan = affiliate.plan === 'free' || affiliate.plan === 'basico' || affiliate.plan === 'prueba';
 
-    // 2. WhatsApp to the affiliate (business) with full details
-    const affiliateWaMsg = createWhatsAppAffiliateNotificationMessage({
-      id: newAppointment.id,
-      clientName: newAppointment.clientName,
-      clientPhone: newAppointment.clientPhone,
-      clientEmail: newAppointment.clientEmail,
-      affiliateName: newAppointment.affiliateName,
-      serviceName: newAppointment.serviceName,
-      servicePrice: newAppointment.servicePrice,
-      date: newAppointment.date,
-      time: newAppointment.time,
-      notes: newAppointment.notes,
-      address: affiliate.address
-    });
+    if (isFreePlan) {
+      // Free Plan: notifications exclusively via Gmail (n8n)
+      fetch('https://n8n.bahiago.tech/webhook/plan-gratis-notificacion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          affiliateEmail: affiliate.email || affiliate.ownerEmail || '',
+          affiliateBusinessName: affiliate.businessName,
+          clientName: newAppointment.clientName,
+          serviceName: newAppointment.serviceName,
+          date: newAppointment.date,
+          time: newAppointment.time,
+        }),
+      }).catch(() => {});
+    } else {
+      // Paid Plan: Generate automated Twilio WhatsApp messages for BOTH parties:
+      const clientWaMsg = createWhatsAppConfirmationMessage({
+        id: newAppointment.id,
+        clientName: newAppointment.clientName,
+        affiliateName: newAppointment.affiliateName,
+        serviceName: newAppointment.serviceName,
+        servicePrice: newAppointment.servicePrice,
+        date: newAppointment.date,
+        time: newAppointment.time,
+        address: affiliate.address
+      });
 
-    newAppointment.whatsappMessages.push(clientWaMsg, affiliateWaMsg);
+      const affiliateWaMsg = createWhatsAppAffiliateNotificationMessage({
+        id: newAppointment.id,
+        clientName: newAppointment.clientName,
+        clientPhone: newAppointment.clientPhone,
+        clientEmail: newAppointment.clientEmail,
+        affiliateName: newAppointment.affiliateName,
+        serviceName: newAppointment.serviceName,
+        servicePrice: newAppointment.servicePrice,
+        date: newAppointment.date,
+        time: newAppointment.time,
+        notes: newAppointment.notes,
+        address: affiliate.address
+      });
+
+      newAppointment.whatsappMessages.push(clientWaMsg, affiliateWaMsg);
+    }
 
     // Save to Firestore / local cache
     try {

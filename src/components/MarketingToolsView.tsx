@@ -1,1007 +1,956 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  Sparkles, Users, Image as ImageIcon, Video, Film,
-  MessageSquare, ArrowLeft, Zap, Download, Globe,
-  CheckCircle2, Clock, RefreshCw, Plus, Play,
-  Star, Upload, X, AlertCircle, ChevronRight
+  Users, Image as ImageIcon, Video, Film, Lock, CheckCircle2,
+  ArrowRight, Sparkles, Download, RefreshCw, Plus, Share2,
+  Send, AlertCircle, X, Clock, Globe, Megaphone
 } from 'lucide-react';
-import { Affiliate, MarketingAsset, MarketingLevelType, KieAiModel } from '../types';
-import { DataService } from '../services/dataService';
-import { MarketingService } from '../services/marketingService';
 import confetti from 'canvas-confetti';
+import {
+  Affiliate,
+  BuyerPersona,
+  ImagePackage916,
+  MonthlyVideoRecord,
+  ExposureRequest
+} from '../types.ts';
+import { usePlanGuard } from '../hooks/usePlanGuard.ts';
+import { DataService } from '../services/dataService.ts';
 
-// ─────────────────────────────────────────
-// N8N WEBHOOK — sends requests to n8n which
-// calls DeepSeek + Kie.ai and returns to Firestore
-// ─────────────────────────────────────────
-const N8N_WEBHOOK_URL = 'https://n8n.bahiago.tech/webhook/marketing-citas-mas';
+const N8N_BASE = 'https://n8n.bahiago.tech/webhook';
 
 interface Props {
   affiliate: Affiliate;
   initialTab?: string;
   onUpdateAffiliate: (updated: Affiliate) => void;
   onNavigateToLanding?: () => void;
+  onUpgradePlan?: () => void;
   onClose?: () => void;
 }
 
-// ─── LEVEL DEFINITIONS ─────────────────────────────────────────────────────
-interface LevelDefinition {
-  level: MarketingLevelType;
-  title: string;
-  subtitle: string;
-  description: string;
-  badge: string;
-  badgeColor: string;
-  icon: React.ReactNode;
-  gradient: string;
-  borderColor: string;
-  kieModel?: KieAiModel;
-  isFree: boolean;
-  hasReferencePhoto: boolean;
-}
-
-const MARKETING_LEVELS: LevelDefinition[] = [
-  {
-    level: 1,
-    title: 'Público Objetivo',
-    subtitle: 'Clientes Potenciales de tu Zona',
-    description: 'La IA analiza tu negocio, servicios y ubicación para identificar y entregarte los 3 perfiles de clientes ideales en tu zona. Incluido en todos los planes.',
-    badge: 'Incluido',
-    badgeColor: 'bg-emerald-100 text-emerald-700',
-    icon: <Users className="w-7 h-7" />,
-    gradient: 'from-blue-500 to-cyan-400',
-    borderColor: 'border-blue-200',
-    isFree: true,
-    hasReferencePhoto: false,
-  },
-  {
-    level: 2,
-    title: 'Flyer Publicitario de Marca',
-    subtitle: 'Imagen tipo flyer con identidad visual',
-    description: 'DeepSeek analiza tu negocio y redacta el copy perfecto. Kie.ai genera con Grok Image 2 un flyer profesional con la identidad de tu marca. Puedes usar fotos de referencia de tu negocio.',
-    badge: 'IA Visual',
-    badgeColor: 'bg-purple-100 text-purple-700',
-    icon: <ImageIcon className="w-7 h-7" />,
-    gradient: 'from-purple-500 to-pink-400',
-    borderColor: 'border-purple-200',
-    kieModel: 'grok-image-2',
-    isFree: true,
-    hasReferencePhoto: true,
-  },
-  {
-    level: 3,
-    title: 'Spot de Audio y Video Animado',
-    subtitle: 'Video con locución IA y música',
-    description: 'Usa el flyer del Nivel 2 como base. DeepSeek escribe el guión del spot (".Agenda en CitasMás"). Kie.ai anima la imagen con Grok Video 1.5 y agrega locución de IA y música masterizada.',
-    badge: 'Video Animado',
-    badgeColor: 'bg-orange-100 text-orange-700',
-    icon: <Video className="w-7 h-7" />,
-    gradient: 'from-orange-500 to-amber-400',
-    borderColor: 'border-orange-200',
-    kieModel: 'grok-video-1.5',
-    isFree: true,
-    hasReferencePhoto: true,
-  },
-  {
-    level: 4,
-    title: 'Video Cinematográfico — 1 Minuto',
-    subtitle: 'Producción cinemática de alto impacto',
-    description: 'Video cinematográfico de 1 minuto con estructura de alta conversión: Detección del dolor (0-15s) → Tu solución (15-35s) → Cómo funciona CitasMás (35-50s) → Llamado a la acción (50-60s). Incluye 1 video GRATIS cada 2 meses.',
-    badge: '1 GRATIS c/2 meses',
-    badgeColor: 'bg-rose-100 text-rose-700',
-    icon: <Film className="w-7 h-7" />,
-    gradient: 'from-rose-600 to-pink-500',
-    borderColor: 'border-rose-200',
-    kieModel: 'grok-image-to-video',
-    isFree: true,
-    hasReferencePhoto: true,
-  },
-  {
-    level: 5,
-    title: 'Agente Personal Post-Cita',
-    subtitle: 'Seguimiento por WhatsApp con IA',
-    description: 'Un agente especializado de DeepSeek da seguimiento post-cita a tus clientes por WhatsApp. Envía recordatorios automáticos, reagendamientos y mensajes personalizados según las instrucciones que le des.',
-    badge: 'WhatsApp IA',
-    badgeColor: 'bg-green-100 text-green-700',
-    icon: <MessageSquare className="w-7 h-7" />,
-    gradient: 'from-green-500 to-emerald-400',
-    borderColor: 'border-green-200',
-    isFree: true,
-    hasReferencePhoto: false,
-  },
-];
+type ActiveEtapa = 'etapa1' | 'etapa2' | 'etapa3' | 'etapa4' | null;
 
 const VOICE_TYPES = [
-  { value: 'female_warm', label: '🎙️ Femenina — Cálida y Empática' },
-  { value: 'male_professional', label: '🎙️ Masculina — Profesional y Directa' },
-  { value: 'cinematic_narrator', label: '🎙️ Narrador Cinematográfico — Grave y Profundo' },
+  { value: 'female_warm', label: 'Femenina — Cálida y Empática' },
+  { value: 'male_professional', label: 'Masculina — Profesional y Directa' },
+  { value: 'cinematic_narrator', label: 'Narrador Cinematográfico — Grave y Profundo' },
 ];
 
-export const DISRUPTIVE_LEVELS = [
-  {
-    value: 'conservative',
-    label: '🛡️ Profesional & Seguro',
-    badge: 'Apego COFEPRIS / PROFECO',
-    description: 'Tono sobrio, médico o corporativo de máxima credibilidad y rigor legal. Sin promesas milagrosas, con total transparencia en precios MXN.'
-  },
-  {
-    value: 'persuasive',
-    label: '🎯 Persuasivo Comercial (Venta Directa)',
-    badge: 'Alta Conversión',
-    description: 'Voz estilo vendedor influyente, activa dolores del cliente, urgencia de agenda y propuesta de valor contundente.'
-  },
-  {
-    value: 'disruptive_viral',
-    label: '🔥 Disruptivo Viral Extremo (TikTok / Reels)',
-    badge: 'Retención y Viralidad',
-    description: 'Gancho agresivo de dolor en 0-3s, ruptura de patrón visual, ritmo acelerado y solución contundente para máxima exposición.'
-  },
-];
-
-// ─── ASSET STATUS BADGE ─────────────────────────────────────────────────────
-const AssetStatusBadge: React.FC<{ status: MarketingAsset['status'] }> = ({ status }) => {
-  if (status === 'processing') return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-bold">
-      <RefreshCw className="w-3 h-3 animate-spin" /> Generando...
-    </span>
-  );
-  if (status === 'ready') return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">
-      <CheckCircle2 className="w-3 h-3" /> Listo
-    </span>
-  );
-  return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-bold">
-      <AlertCircle className="w-3 h-3" /> Error
-    </span>
-  );
-};
-
-// ─── ASSET CARD ─────────────────────────────────────────────────────────────
-const AssetCard: React.FC<{
-  asset: MarketingAsset;
-  affiliate: Affiliate;
-  onAddToPage: (asset: MarketingAsset) => void;
-  onTogglingId: string | null;
-}> = ({ asset, affiliate, onAddToPage, onTogglingId }) => {
-  const levelDef = MARKETING_LEVELS.find(l => l.level === asset.level);
-  const isToggling = onTogglingId === asset.id;
-
-  const isVideo = asset.assetType === 'cinematic_video' || asset.assetType === 'animated_video';
-
-  return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-      {/* Media Preview */}
-      <div className="relative bg-gray-900 aspect-video flex items-center justify-center">
-        {asset.status === 'processing' ? (
-          <div className="flex flex-col items-center gap-3 text-white/60">
-            <RefreshCw className="w-10 h-10 animate-spin text-white/40" />
-            <p className="text-sm font-medium">Generando con IA...</p>
-            <p className="text-xs text-white/40">Esto puede tomar 1-3 minutos</p>
-          </div>
-        ) : asset.status === 'error' ? (
-          <div className="flex flex-col items-center gap-2 text-red-400 p-4 text-center">
-            <AlertCircle className="w-8 h-8" />
-            <p className="text-sm">{asset.errorMessage || 'Error al generar'}</p>
-          </div>
-        ) : asset.mediaUrl ? (
-          isVideo ? (
-            <video
-              src={asset.mediaUrl}
-              poster={asset.thumbnailUrl}
-              controls
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <img
-              src={asset.mediaUrl}
-              alt={asset.title}
-              className="w-full h-full object-cover"
-            />
-          )
-        ) : (
-          <div className="flex items-center justify-center w-full h-full text-white/30">
-            <ImageIcon className="w-12 h-12" />
-          </div>
-        )}
-
-        {/* Level badge */}
-        {levelDef && (
-          <div className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-white text-xs font-bold bg-gradient-to-r ${levelDef.gradient}`}>
-            Nivel {asset.level}
-          </div>
-        )}
-
-        {/* Status badge */}
-        <div className="absolute top-2 right-2">
-          <AssetStatusBadge status={asset.status} />
-        </div>
-      </div>
-
-      {/* Info */}
-      <div className="p-4">
-        <h4 className="font-bold text-gray-900 text-sm mb-1">{asset.title}</h4>
-        {asset.serviceName && (
-          <p className="text-xs text-gray-500 mb-2">Servicio: {asset.serviceName}</p>
-        )}
-        {asset.copyText && (
-          <p className="text-xs text-gray-600 italic line-clamp-2 mb-3">"{asset.copyText}"</p>
-        )}
-        <p className="text-[11px] text-gray-400 mb-3">{new Date(asset.createdAt).toLocaleDateString('es-MX')}</p>
-
-        {/* Action Buttons */}
-        {asset.status === 'ready' && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => onAddToPage(asset)}
-              disabled={isToggling}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all ${
-                asset.addedToLanding
-                  ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                  : 'bg-gray-900 text-white hover:bg-black'
-              } disabled:opacity-60`}
-            >
-              {isToggling ? (
-                <RefreshCw className="w-3 h-3 animate-spin" />
-              ) : asset.addedToLanding ? (
-                <><CheckCircle2 className="w-3 h-3" /> En mi página</>
-              ) : (
-                <><Plus className="w-3 h-3" /> Agregar a mi página</>
-              )}
-            </button>
-
-            {asset.mediaUrl && (
-              <a
-                href={asset.mediaUrl}
-                download={`citasmas-nivel${asset.level}-${asset.id}.${isVideo ? 'mp4' : 'png'}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-xl text-xs font-bold transition-all"
-              >
-                <Download className="w-3 h-3" /> Descargar
-              </a>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// ─── MAIN COMPONENT ─────────────────────────────────────────────────────────
 export const MarketingToolsView: React.FC<Props> = ({
   affiliate,
-  initialTab,
   onUpdateAffiliate,
   onNavigateToLanding,
+  onUpgradePlan,
   onClose,
 }) => {
-  const [activeTab, setActiveTab] = useState<'catalog' | 'my_assets'>('catalog');
-  const [selectedLevel, setSelectedLevel] = useState<LevelDefinition | null>(null);
+  const guard = usePlanGuard(affiliate);
 
-  // If opened via dropdown with a specific level, pre-select it
+  const [activeEtapa, setActiveEtapa] = useState<ActiveEtapa>(null);
+  const [personas, setPersonas] = useState<BuyerPersona[]>(affiliate.buyerPersonas || []);
+  const [packages, setPackages] = useState<ImagePackage916[]>(affiliate.imagePackages || []);
+  const [monthlyVideos, setMonthlyVideos] = useState<MonthlyVideoRecord[]>(affiliate.monthlyVideos || []);
+  const [activeTab, setActiveTab] = useState<'stages' | 'resources'>('stages');
+
+  // Loading / feedback states
+  const [isGeneratingE1, setIsGeneratingE1] = useState(false);
+  const [isGeneratingE2, setIsGeneratingE2] = useState(false);
+  const [isGeneratingE3, setIsGeneratingE3] = useState(false);
+  const [isGeneratingE4, setIsGeneratingE4] = useState(false);
+  const [statusBanner, setStatusBanner] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+  const [exposureSuccessIds, setExposureSuccessIds] = useState<Record<string, boolean>>({});
+
+  // Etapa 1 manual form
+  const [newPersonaName, setNewPersonaName] = useState('');
+  const [newPersonaAge, setNewPersonaAge] = useState('25-45 años');
+  const [newPersonaGender, setNewPersonaGender] = useState('Mujeres y Hombres');
+  const [newPersonaZone, setNewPersonaZone] = useState(affiliate.city || '');
+  const [newPersonaFear, setNewPersonaFear] = useState('');
+  const [newPersonaDesire, setNewPersonaDesire] = useState('');
+  const [newPersonaTrigger, setNewPersonaTrigger] = useState('');
+  const [newPersonaHook, setNewPersonaHook] = useState('');
+
+  // Etapa 2 form
+  const [selectedPersonaId, setSelectedPersonaId] = useState<string>(personas[0]?.id || '');
+  const [selectedServiceId, setSelectedServiceId] = useState<string>(affiliate.services[0]?.id || 'global');
+  const [isGlobalAd, setIsGlobalAd] = useState<boolean>(affiliate.services.length === 0);
+  const [packageActiveImageTab, setPackageActiveImageTab] = useState<Record<string, 'publicitaria' | 'educativa' | 'promocion'>>({});
+
+  // Etapa 3 & 4 form
+  const readyPackages = packages.filter(p => p.status === 'ready');
+  const [selectedPackageId, setSelectedPackageId] = useState<string>(readyPackages[0]?.id || '');
+  const [voiceType, setVoiceType] = useState<string>('female_warm');
+  const [promotionText, setPromotionText] = useState<string>('');
+  const [cinematicMessage, setCinematicMessage] = useState<string>('');
+
   useEffect(() => {
-    if (!initialTab) return;
-    if (initialTab === 'audience') {
-      const l = MARKETING_LEVELS.find(x => x.level === 1);
-      if (l) setSelectedLevel(l);
-    } else if (initialTab === 'campaign_2d') {
-      const l = MARKETING_LEVELS.find(x => x.level === 2);
-      if (l) setSelectedLevel(l);
-    } else if (initialTab === 'campaign_pro') {
-      const l = MARKETING_LEVELS.find(x => x.level === 3);
-      if (l) setSelectedLevel(l);
-    } else if (initialTab === 'campaign_premium') {
-      const l = MARKETING_LEVELS.find(x => x.level === 4);
-      if (l) setSelectedLevel(l);
-    } else if (initialTab === 'n8n_retention' || initialTab === 'whatsapp_agent') {
-      const l = MARKETING_LEVELS.find(x => x.level === 5);
-      if (l) setSelectedLevel(l);
-    }
-  }, [initialTab]);
-  const [assets, setAssets] = useState<MarketingAsset[]>([]);
-  const [isLoadingAssets, setIsLoadingAssets] = useState(false);
-  const [isDispatching, setIsDispatching] = useState(false);
-  const [dispatchStatus, setDispatchStatus] = useState('');
-  const [togglingAssetId, setTogglingAssetId] = useState<string | null>(null);
+    setPersonas(affiliate.buyerPersonas || []);
+    setPackages(affiliate.imagePackages || []);
+    setMonthlyVideos(affiliate.monthlyVideos || []);
+  }, [affiliate]);
 
-  // Form fields per level
-  const [campaignScope, setCampaignScope] = useState<'specific' | 'global'>('specific');
-  const [selectedServiceId, setSelectedServiceId] = useState(affiliate.services?.[0]?.id || '');
-  const [voiceType, setVoiceType] = useState('female_warm');
-  const [disruptiveLevel, setDisruptiveLevel] = useState<'conservative' | 'persuasive' | 'disruptive_viral'>('persuasive');
-  const [customInstructions, setCustomInstructions] = useState('');
-  const [selectedReferencePhotos, setSelectedReferencePhotos] = useState<string[]>([]);
-
-  // Real-time subscription to marketing assets
   useEffect(() => {
-    setIsLoadingAssets(true);
-    const unsub = DataService.getInstance().subscribeToMarketingAssets(
-      affiliate.id,
-      (updatedAssets) => {
-        setAssets(updatedAssets);
-        setIsLoadingAssets(false);
-      }
-    );
-    return () => unsub();
-  }, [affiliate.id]);
-
-  const getSelectedService = () => {
-    if (campaignScope === 'global') {
-      return {
-        id: 'global',
-        name: `Visión Global y Catálogo Completo de ${affiliate.businessName || affiliate.name}`,
-        price: affiliate.services?.[0]?.price || 500,
-        duration: 45,
-        description: `Promoción integral de la marca ${affiliate.businessName || affiliate.name}. Presenta la variedad de servicios de ${affiliate.categoryLabel}, instalaciones y prestigio profesional en ${affiliate.city}.`
-      };
+    if (!selectedPersonaId && personas.length > 0) {
+      setSelectedPersonaId(personas[0].id);
     }
-    return affiliate.services?.find(s => s.id === selectedServiceId) || affiliate.services?.[0] || {
-      id: 'default',
-      name: 'Consulta Especializada',
-      price: 500,
-      duration: 45,
-      description: 'Atención personalizada'
-    };
+  }, [personas, selectedPersonaId]);
+
+  useEffect(() => {
+    if (!selectedPackageId && readyPackages.length > 0) {
+      setSelectedPackageId(readyPackages[0].id);
+    }
+  }, [readyPackages, selectedPackageId]);
+
+  const showToast = (type: 'success' | 'error', msg: string) => {
+    setStatusBanner({ type, msg });
+    setTimeout(() => setStatusBanner(null), 5000);
   };
 
-  // Toggle reference photo selection from gallery
-  const toggleReferencePhoto = (url: string) => {
-    setSelectedReferencePhotos(prev =>
-      prev.includes(url) ? prev.filter(u => u !== url) : [...prev, url].slice(0, 3)
-    );
-  };
-
-  // Dispatch to n8n
-  const handleDispatch = async () => {
-    if (!selectedLevel) return;
-    setIsDispatching(true);
-    setDispatchStatus('Conectando con los servidores de IA...');
-
-    const service = getSelectedService();
-    const pendingAssetId = `mkt-${affiliate.id}-lvl${selectedLevel.level}-${Date.now()}`;
-
-    // Create a "processing" placeholder in Firestore immediately so the UI shows it
-    const placeholderAsset: MarketingAsset = {
-      id: pendingAssetId,
-      affiliateId: affiliate.id,
-      level: selectedLevel.level,
-      assetType: selectedLevel.level === 1 ? 'buyer_personas'
-        : selectedLevel.level === 2 ? (selectedReferencePhotos.length > 0 ? 'flyer_with_reference' : 'flyer_image')
-        : selectedLevel.level === 3 ? 'animated_video'
-        : selectedLevel.level === 4 ? 'cinematic_video'
-        : 'whatsapp_agent',
-      kieModel: selectedLevel.kieModel,
-      title: `${selectedLevel.title} — ${service?.name || affiliate.businessName}`,
-      serviceName: service?.name,
-      serviceId: service?.id,
-      voiceType,
-      referencePhotoUrls: selectedReferencePhotos,
-      status: 'processing',
-      addedToLanding: false,
-      includedMonthly: selectedLevel.level === 4,
-      createdAt: new Date().toISOString(),
-    };
-
+  // ─── ETAPA 1: GENERATE BUYER PERSONAS WITH AI ────────────────────────────
+  const handleGeneratePersonasAI = async () => {
+    if (!guard.canUseEtapa1) return;
+    setIsGeneratingE1(true);
     try {
-      await DataService.getInstance().saveMarketingAsset(placeholderAsset);
-    } catch (_) {
-      // non-fatal
-    }
-
-    // Build n8n payload
-    const payload = {
-      toolType: `level_${selectedLevel.level}`,
-      level: selectedLevel.level,
-      assetId: pendingAssetId,
-      affiliateId: affiliate.id,
-      businessName: affiliate.businessName || affiliate.name,
-      contactPhone: affiliate.phone,
-      contactEmail: affiliate.email,
-      categoryLabel: affiliate.categoryLabel,
-      city: affiliate.city,
-      state: affiliate.state,
-      country: affiliate.country,
-      logo: affiliate.logo,
-      gallery: affiliate.gallery,
-      description: affiliate.description,
-      services: affiliate.services,
-      buyerPersonas: affiliate.buyerPersonas,
-      selectedService: service,
-      campaignScope,
-      campaignFocusDescription: campaignScope === 'global'
-        ? `Campaña GLOBAL e Institucional de la marca "${affiliate.businessName || affiliate.name}". El video/anuncio debe promover todo el catálogo de servicios de ${affiliate.categoryLabel}, instalaciones y prestigio profesional en ${affiliate.city}.`
-        : `Campaña enfocada 100% en el SERVICIO ESPECÍFICO "${service?.name}". El video/anuncio debe abordar exclusivamente los dolores, beneficios y oferta de este servicio ($${service?.price} MXN).`,
-      voiceType,
-      disruptiveLevel,
-      disruptiveLabel: DISRUPTIVE_LEVELS.find(d => d.value === disruptiveLevel)?.label || 'Persuasivo Comercial',
-      affiliateBookingUrl: `https://citasmas.com?affiliate=${affiliate.id}`,
-      customInstructions,
-      referencePhotoUrls: selectedReferencePhotos,
-      kieModel: selectedLevel.kieModel || 'grok-image-2',
-      // Kie.ai model instructions per level
-      kieModelInstructions: {
-        level2: 'Use Grok Image 2 (grok-image-2) for text-to-image flyer generation. If reference photos provided, use Grok Image-to-Image (grok-image-to-image) with them as style references.',
-        level3: 'Use Grok Video 1.5 (grok-video-1.5) for Image-to-Video animation. Animate the level-2 flyer into a 15-30 second spot with AI voiceover.',
-        level4: 'Use Grok Image-to-Video (grok-image-to-video) with reference photos if available. Generate a 1-minute cinematic video: 0-15s problem detection, 15-35s solution presentation, 35-50s CitasMás demo, 50-60s call to action.',
-      },
-      timestamp: new Date().toISOString(),
-    };
-
-    let dispatchedSuccessfully = false;
-    try {
-      setDispatchStatus('Enviando solicitud a los agentes de IA...');
-      const response = await fetch(N8N_WEBHOOK_URL, {
+      const res = await fetch(`${N8N_BASE}/marketing-etapa1-personas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          affiliateId: affiliate.id,
+          businessName: affiliate.businessName,
+          category: affiliate.categoryLabel || affiliate.category,
+          city: affiliate.city,
+          description: affiliate.description,
+          services: affiliate.services.map(s => `${s.name} ($${s.price} MXN)`).join(', '),
+        }),
       });
+      const data = await res.json();
+      const generated: BuyerPersona[] = Array.isArray(data?.personas) && data.personas.length > 0
+        ? data.personas
+        : [
+            {
+              id: `bp-${Date.now()}-1`,
+              name: `Cliente Ideal Local (${affiliate.city})`,
+              ageRange: '28-45 años',
+              gender: 'Todos',
+              specificZone: affiliate.city || 'Zona Metropolitana',
+              fears: ['Falta de tiempo', 'Malas experiencias previas', 'Precios ocultos'],
+              desires: ['Atención rápida', 'Resultados visibles', 'Confianza profesional'],
+              buyingTriggers: ['Agendamiento en 1 clic', 'Reseñas verificadas', 'Promoción de bienvenida'],
+              summaryHook: `Transforma tu experiencia en ${affiliate.businessName} con cita garantizada.`,
+            }
+          ];
 
-      if (response.ok) {
-        dispatchedSuccessfully = true;
-      }
-    } catch (err: any) {
-      console.warn('n8n webhook network notice, triggering resilient local AI engine:', err);
-    }
-
-    if (!dispatchedSuccessfully) {
-      // Resilient local synthesis: generate the asset immediately so the marketing tool NEVER fails
-      setDispatchStatus('Sintetizando contenido con motor de IA CitasMás...');
-      try {
-        const marketingSvc = MarketingService.getInstance();
-        const readyAsset: MarketingAsset = {
-          ...placeholderAsset,
-          status: 'ready',
-          readyAt: new Date().toISOString()
-        };
-
-        if (selectedLevel.level === 1) {
-          const personas = await marketingSvc.discoverBuyerPersonas(affiliate);
-          readyAsset.description = `3 Perfiles de Buyer Personas identificados: ${personas.map(p => p.name).join(' · ')}`;
-          readyAsset.copyText = JSON.stringify(personas, null, 2);
-          const updatedAff = { ...affiliate, buyerPersonas: personas };
-          await DataService.getInstance().saveAffiliate(updatedAff);
-          onUpdateAffiliate(updatedAff);
-        } else if (selectedLevel.level === 2) {
-          const copy = await marketingSvc.generateCampaignCopy(affiliate);
-          readyAsset.copyText = `📢 ${copy.headline}\n\n${copy.subheadline}\n\n${copy.bodyCopy}\n\nOferta: ${copy.priceOffer}`;
-          readyAsset.mediaUrl = selectedReferencePhotos[0] || affiliate.banner || affiliate.logo || 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1080&auto=format&fit=crop&q=80';
-          readyAsset.thumbnailUrl = readyAsset.mediaUrl;
-        } else if (selectedLevel.level === 3) {
-          readyAsset.copyText = `🎙️ [Spot con Locución ${voiceType}]: "Atención ${affiliate.city}. En ${affiliate.businessName || affiliate.name} cuentas con especialistas certificados. Agenda tu horario en citasmas.com con confirmación directa a tu WhatsApp."`;
-          readyAsset.mediaUrl = affiliate.videoUrl || 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
-          readyAsset.thumbnailUrl = affiliate.banner || affiliate.logo;
-        } else if (selectedLevel.level === 4) {
-          readyAsset.copyText = `🎬 Estructura Cinematográfica 4K (1 Min):\n• Acto 1 (0-15s): Detección del dolor e insatisfacción en ${affiliate.city}\n• Acto 2 (15-35s): Solución exclusiva en ${affiliate.businessName || affiliate.name}\n• Acto 3 (35-50s): Respaldo de cita asegurada sin filas en CitasMás\n• Acto 4 (50-60s): Llamado a la acción con WhatsApp`;
-          readyAsset.mediaUrl = affiliate.videoUrl || 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
-          readyAsset.thumbnailUrl = affiliate.banner || affiliate.logo;
-        } else {
-          readyAsset.copyText = `🤖 Agente WhatsApp DeepSeek Activo:\n• Regla 24h: Confirmación y encuesta de satisfacción post-cita.\n• Regla 30d: Recordatorio preventivo y beneficio de lealtad.\n• Re-engagement 60d: Reactivación automática con oferta relámpago.`;
-        }
-
-        await DataService.getInstance().saveMarketingAsset(readyAsset);
-      } catch (synthErr) {
-        console.error('Synthesis fallback error:', synthErr);
-      }
-    }
-
-    setDispatchStatus('');
-    setSelectedLevel(null);
-    setCustomInstructions('');
-    setSelectedReferencePhotos([]);
-    setActiveTab('my_assets');
-    confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } });
-    setIsDispatching(false);
-  };
-
-  // Add/remove from affiliate landing page
-  const handleToggleOnLanding = async (asset: MarketingAsset) => {
-    setTogglingAssetId(asset.id);
-    try {
-      const updatedAffiliate = await DataService.getInstance().toggleAssetOnLanding(asset, affiliate);
-      onUpdateAffiliate(updatedAffiliate);
-      // Optimistically update local asset list
-      setAssets(prev => prev.map(a => a.id === asset.id ? { ...a, addedToLanding: !a.addedToLanding } : a));
+      const merged = [...personas, ...generated];
+      const updated: Affiliate = {
+        ...affiliate,
+        buyerPersonas: merged,
+        etapa1Completed: true,
+        updatedAt: new Date().toISOString(),
+      };
+      await DataService.getInstance().saveAffiliate(updated);
+      setPersonas(merged);
+      onUpdateAffiliate(updated);
+      confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+      showToast('success', `✅ Se crearon ${generated.length} Clientes Ideales. ¡Ya puedes pasar a la Etapa 2!`);
     } catch (err) {
-      console.error('Error toggling asset on landing:', err);
+      showToast('error', 'No se pudo conectar con n8n para generar personas. Puedes agregar un perfil manualmente.');
     } finally {
-      setTogglingAssetId(null);
+      setIsGeneratingE1(false);
     }
   };
 
-  // Count free cinematic videos used this period (every 2 months)
-  const now = new Date();
-  const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, now.getDate()).toISOString();
-  const recentCinematicCount = assets.filter(
-    a => a.level === 4 && a.includedMonthly && a.createdAt >= twoMonthsAgo
-  ).length;
-  const hasFreeVideoAvailable = recentCinematicCount === 0;
+  const handleAddManualPersona = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPersonaName.trim()) return;
+    const persona: BuyerPersona = {
+      id: `bp-${Date.now()}`,
+      name: newPersonaName.trim(),
+      ageRange: newPersonaAge.trim() || '25-45 años',
+      gender: newPersonaGender.trim() || 'Todos',
+      specificZone: newPersonaZone.trim() || affiliate.city,
+      fears: newPersonaFear ? newPersonaFear.split(',').map(s => s.trim()) : ['Falta de confianza'],
+      desires: newPersonaDesire ? newPersonaDesire.split(',').map(s => s.trim()) : ['Servicio de calidad'],
+      buyingTriggers: newPersonaTrigger ? newPersonaTrigger.split(',').map(s => s.trim()) : ['Cita inmediata'],
+      summaryHook: newPersonaHook.trim() || `Soluciones en ${affiliate.businessName}`,
+    };
+    const merged = [...personas, persona];
+    const updated: Affiliate = {
+      ...affiliate,
+      buyerPersonas: merged,
+      etapa1Completed: true,
+      updatedAt: new Date().toISOString(),
+    };
+    await DataService.getInstance().saveAffiliate(updated);
+    setPersonas(merged);
+    onUpdateAffiliate(updated);
+    setNewPersonaName('');
+    setNewPersonaFear('');
+    setNewPersonaDesire('');
+    setNewPersonaTrigger('');
+    setNewPersonaHook('');
+    showToast('success', '✅ Cliente Ideal guardado. Etapa 2 desbloqueada.');
+  };
 
-  // ─── LEVEL DETAIL VIEW ────────────────────────────────────────────────────
-  const renderLevelDetail = () => {
-    if (!selectedLevel) return null;
-    const def = selectedLevel;
-    const isLevel4 = def.level === 4;
+  // ─── ETAPA 2: GENERATE 3 IMAGES 9:16 PACKAGE ─────────────────────────────
+  const handleGenerateImagePackage = async () => {
+    if (!guard.canUseEtapa2) return;
+    const persona = personas.find(p => p.id === selectedPersonaId) || personas[0];
+    if (!persona) {
+      showToast('error', 'Selecciona un Cliente Ideal primero.');
+      return;
+    }
+    const service = !isGlobalAd ? affiliate.services.find(s => s.id === selectedServiceId) : undefined;
+    const pkgId = `pkg-${Date.now()}`;
 
-    return (
-      <div className="space-y-6 animate-in fade-in duration-200">
-        <button
-          onClick={() => { setSelectedLevel(null); setDispatchStatus(''); }}
-          className="flex items-center gap-2 text-gray-500 hover:text-gray-800 text-sm font-medium"
-        >
-          <ArrowLeft className="w-4 h-4" /> Volver al catálogo
-        </button>
+    setIsGeneratingE2(true);
+    try {
+      const res = await fetch(`${N8N_BASE}/marketing-etapa2-imagenes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          affiliateId: affiliate.id,
+          packageId: pkgId,
+          businessName: affiliate.businessName,
+          buyerPersonaId: persona.id,
+          buyerPersonaName: persona.name,
+          buyerPersona: persona,
+          serviceId: service?.id || null,
+          serviceName: service?.name || 'Anuncio Global',
+          isGlobalAd: isGlobalAd || !service,
+        }),
+      });
+      const data = await res.json();
+      const newPkg: ImagePackage916 = {
+        id: data?.packageId || pkgId,
+        affiliateId: affiliate.id,
+        buyerPersonaId: persona.id,
+        buyerPersonaName: persona.name,
+        serviceId: service?.id,
+        serviceName: service?.name || 'Anuncio Global',
+        isGlobalAd: isGlobalAd || !service,
+        images: {
+          publicitaria: data?.images?.publicitaria || affiliate.banner || affiliate.logo,
+          educativa: data?.images?.educativa || affiliate.gallery?.[0] || affiliate.banner,
+          promocion: data?.images?.promocion || affiliate.gallery?.[1] || affiliate.logo,
+        },
+        copyTexts: {
+          publicitaria: data?.prompts?.copy_publicitaria,
+          educativa: data?.prompts?.copy_educativa,
+          promocion: data?.prompts?.copy_promocion,
+        },
+        publicationText: data?.publicationText || `✨ ${affiliate.businessName}: ${service?.name || 'Agenda tu cita hoy en CitasMás'}`,
+        status: 'ready',
+        createdAt: new Date().toISOString(),
+        readyAt: new Date().toISOString(),
+        addedToLanding: false,
+      };
+      await DataService.getInstance().saveImagePackage(affiliate.id, newPkg);
+      const updatedPackages = [newPkg, ...packages];
+      setPackages(updatedPackages);
+      onUpdateAffiliate({ ...affiliate, imagePackages: updatedPackages, etapa2Completed: true });
+      confetti({ particleCount: 60, spread: 70, origin: { y: 0.7 } });
+      showToast('success', '✅ Paquete de 3 imágenes 9:16 generado y guardado en tus recursos.');
+    } catch (err) {
+      showToast('error', 'Error al conectar con n8n para generar el paquete de imágenes.');
+    } finally {
+      setIsGeneratingE2(false);
+    }
+  };
 
-        {/* Header */}
-        <div className={`p-6 rounded-2xl bg-gradient-to-br ${def.gradient} text-white`}>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2.5 bg-white/20 rounded-xl">{def.icon}</div>
-            <div>
-              <p className="text-white/70 text-sm font-medium">Nivel {def.level}</p>
-              <h2 className="text-xl font-black">{def.title}</h2>
-            </div>
+  // ─── ETAPA 3 & 4: GENERATE MONTHLY VIDEO (SPOT OR CINEMATIC) ──────────────
+  const handleGenerateVideo = async (videoType: 'spot' | 'cinematic') => {
+    if (guard.hasVideoThisMonth) {
+      showToast('error', `Ya usaste tu video del mes (${guard.videoTypeUsed}). Disponible en ${guard.daysUntilNextMonth} días.`);
+      return;
+    }
+    const pkg = readyPackages.find(p => p.id === selectedPackageId) || readyPackages[0];
+    if (!pkg) {
+      showToast('error', 'Primero genera un paquete de imágenes en la Etapa 2.');
+      return;
+    }
+
+    if (videoType === 'spot') setIsGeneratingE3(true);
+    else setIsGeneratingE4(true);
+
+    const endpoint = videoType === 'spot' ? 'marketing-etapa3-video-spot' : 'marketing-etapa4-cine';
+    const refImg = pkg.images.publicitaria || pkg.images.promocion || pkg.images.educativa || '';
+
+    try {
+      const res = await fetch(`${N8N_BASE}/${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          affiliateId: affiliate.id,
+          businessName: affiliate.businessName,
+          imagePackageId: pkg.id,
+          imageUrls: pkg.images,
+          referenceImageUrl: refImg,
+          serviceName: pkg.serviceName || 'Anuncio Global',
+          voiceType,
+          promotionText: videoType === 'spot' ? promotionText : cinematicMessage,
+        }),
+      });
+      const data = await res.json();
+      const newVideo: MonthlyVideoRecord = {
+        id: data?.videoId || `vid-${Date.now()}`,
+        affiliateId: affiliate.id,
+        month: guard.currentMonth,
+        videoType,
+        imagePackageId: pkg.id,
+        videoUrl: data?.videoUrl || '',
+        thumbnailUrl: refImg,
+        publicationText: data?.publicationText || pkg.publicationText || `🎬 ${affiliate.businessName} en CitasMás`,
+        status: 'ready',
+        createdAt: new Date().toISOString(),
+        readyAt: new Date().toISOString(),
+        addedToLanding: false,
+      };
+      await DataService.getInstance().saveMonthlyVideo(affiliate.id, newVideo);
+      const updatedVideos = [newVideo, ...monthlyVideos];
+      setMonthlyVideos(updatedVideos);
+      onUpdateAffiliate({ ...affiliate, monthlyVideos: updatedVideos });
+      confetti({ particleCount: 80, spread: 80, origin: { y: 0.6 } });
+      showToast('success', `🎬 ¡Video ${videoType === 'spot' ? 'Spot' : 'Cinematográfico'} generado y guardado!`);
+    } catch (err) {
+      showToast('error', 'Error al generar el video en n8n.');
+    } finally {
+      setIsGeneratingE3(false);
+      setIsGeneratingE4(false);
+    }
+  };
+
+  // ─── ADD TO LANDING ────────────────────────────────────────────────────────
+  const handleAddPackageToLanding = async (pkg: ImagePackage916) => {
+    const imgs = [pkg.images.publicitaria, pkg.images.educativa, pkg.images.promocion].filter(Boolean) as string[];
+    const updatedGallery = Array.from(new Set([...(affiliate.gallery || []), ...imgs]));
+    const updatedPackages = packages.map(p => p.id === pkg.id ? { ...p, addedToLanding: true } : p);
+    const updatedAff: Affiliate = { ...affiliate, gallery: updatedGallery, imagePackages: updatedPackages };
+    await DataService.getInstance().saveAffiliate(updatedAff);
+    setPackages(updatedPackages);
+    onUpdateAffiliate(updatedAff);
+    showToast('success', '✅ Imágenes agregadas a tu página pública.');
+  };
+
+  // ─── REQUEST EXPOSURE ──────────────────────────────────────────────────────
+  const handleSolicitarExposicion = async (
+    assetType: 'image_package' | 'video',
+    assetId: string,
+    assetUrl: string,
+    publicationText: string
+  ) => {
+    const exposureRequest: ExposureRequest = {
+      id: `exp-${Date.now()}`,
+      affiliateId: affiliate.id,
+      affiliateName: affiliate.businessName,
+      affiliatePhone: affiliate.phone,
+      assetType,
+      assetId,
+      assetUrl,
+      publicationText: publicationText || `¡Conoce ${affiliate.businessName}! Agenda tu cita en CitasMás.`,
+      status: 'pending_review',
+      requestedAt: new Date().toISOString(),
+    };
+    try {
+      await DataService.getInstance().createExposureRequest(exposureRequest);
+      fetch(`${N8N_BASE}/exposicion-solicitud`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(exposureRequest),
+      }).catch(() => {});
+      setExposureSuccessIds(prev => ({ ...prev, [assetId]: true }));
+      showToast('success', '📢 Solicitud de exposición enviada al Administrador General.');
+    } catch (err) {
+      showToast('error', 'No se pudo enviar la solicitud de exposición.');
+    }
+  };
+
+  // ─── STAGE METADATA ────────────────────────────────────────────────────────
+  const stages = [
+    {
+      id: 'etapa1' as const,
+      num: 1,
+      title: 'Cliente Ideal + Servicios',
+      subtitle: 'Base obligatoria de tu marketing',
+      desc: 'Define tus Buyer Personas y selecciona los productos/servicios o Anuncio Global.',
+      icon: <Users className="w-6 h-6 text-white" />,
+      gradient: 'from-blue-600 to-cyan-500',
+      unlocked: guard.canUseEtapa1,
+      completed: personas.length > 0,
+      lockReason: 'Requiere Plan Mensual',
+    },
+    {
+      id: 'etapa2' as const,
+      num: 2,
+      title: 'Paquete de 3 Imágenes 9:16',
+      subtitle: 'Publicitaria • Educativa • Promoción',
+      desc: 'Elige 1 Cliente Ideal + 1 Servicio (o Anuncio Global) y genera 3 piezas verticales.',
+      icon: <ImageIcon className="w-6 h-6 text-white" />,
+      gradient: 'from-purple-600 to-pink-500',
+      unlocked: guard.canUseEtapa2,
+      completed: readyPackages.length > 0,
+      lockReason: 'Completa primero la Etapa 1 (crea al menos 1 Cliente Ideal)',
+    },
+    {
+      id: 'etapa3' as const,
+      num: 3,
+      title: 'Video Spot (Audio Español)',
+      subtitle: 'Usa tus imágenes 9:16 como referencia',
+      desc: 'Spot con narración en español, música y enfoque en tu promoción. (1 video/mes: Etapa 3 ó 4)',
+      icon: <Video className="w-6 h-6 text-white" />,
+      gradient: 'from-orange-500 to-amber-500',
+      unlocked: guard.canUseEtapa3 && !guard.hasVideoThisMonth,
+      completed: monthlyVideos.some(v => v.videoType === 'spot' && v.month === guard.currentMonth),
+      lockReason: !guard.canUseEtapa3
+        ? 'Completa primero la Etapa 2 (genera un paquete de imágenes)'
+        : `Ya usaste tu video del mes (${guard.videoTypeUsed}). Disponible en ${guard.daysUntilNextMonth} días.`,
+    },
+    {
+      id: 'etapa4' as const,
+      num: 4,
+      title: 'Video Cinematográfico',
+      subtitle: 'Producción de alta calidad',
+      desc: 'Video cinematográfico de alto impacto con tus imágenes. (1 video/mes: Etapa 3 ó 4)',
+      icon: <Film className="w-6 h-6 text-white" />,
+      gradient: 'from-rose-600 to-red-500',
+      unlocked: guard.canUseEtapa4 && !guard.hasVideoThisMonth,
+      completed: monthlyVideos.some(v => v.videoType === 'cinematic' && v.month === guard.currentMonth),
+      lockReason: !guard.canUseEtapa4
+        ? 'Completa primero la Etapa 2 (genera un paquete de imágenes)'
+        : `Ya usaste tu video del mes (${guard.videoTypeUsed}). Disponible en ${guard.daysUntilNextMonth} días.`,
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shadow-md">
+            <Sparkles className="w-6 h-6 text-white" />
           </div>
-          <p className="text-white/90 text-sm leading-relaxed">{def.description}</p>
-          {isLevel4 && (
-            <div className="mt-3 bg-white/20 rounded-xl p-3 flex items-center gap-2">
-              <Star className="w-4 h-4 text-yellow-300" />
-              <p className="text-sm font-bold">
-                {hasFreeVideoAvailable
-                  ? '✨ Tienes 1 video cinematográfico GRATIS disponible este período (cada 2 meses).'
-                  : '⏳ Usaste tu video gratis este período. El siguiente será en menos de 2 meses.'}
-              </p>
-            </div>
-          )}
+          <div>
+            <h2 className="text-xl font-extrabold text-gray-900">Marketing con IA por Etapas</h2>
+            <p className="text-xs text-gray-500">
+              Flujo secuencial obligatorio • Plan actual:{' '}
+              <span className="font-bold uppercase text-indigo-600">
+                {guard.isPaid ? 'Plan Mensual ($1,200/mes)' : 'Plan Gratuito'}
+              </span>
+            </p>
+          </div>
         </div>
 
-        {/* Config form */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
-          <h3 className="font-bold text-gray-800">Configuración de tu Campaña</h3>
-
-          {/* Enfoque del Video / Publicidad (Servicio Específico vs Promoción Global) */}
-          {def.level !== 1 && def.level !== 5 && (
-            <div className="space-y-3">
-              <label className="block text-sm font-semibold text-gray-700">
-                ¿En qué deseas enfocar tu video o anuncio?
-              </label>
-              
-              {/* Scope Switcher Tabs */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setCampaignScope('specific')}
-                  className={`p-3 rounded-xl border-2 text-left transition-all ${
-                    campaignScope === 'specific'
-                      ? 'border-gray-900 bg-gray-50 shadow-xs'
-                      : 'border-gray-200 hover:border-gray-300 bg-white'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-base">🎯</span>
-                    <span className="font-bold text-sm text-gray-900">Servicio o Producto Específico</span>
-                  </div>
-                  <p className="text-xs text-gray-500 leading-snug">
-                    El video se centrará al 100% en los beneficios, dolores directos y precio de un servicio puntual de tu catálogo.
-                  </p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setCampaignScope('global')}
-                  className={`p-3 rounded-xl border-2 text-left transition-all ${
-                    campaignScope === 'global'
-                      ? 'border-purple-600 bg-purple-50/70 shadow-xs'
-                      : 'border-gray-200 hover:border-gray-300 bg-white'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-base">🌟</span>
-                    <span className="font-bold text-sm text-gray-900">Promoción Global de tu Negocio</span>
-                  </div>
-                  <p className="text-xs text-gray-500 leading-snug">
-                    El video destacará tu marca, instalaciones, prestigio y la variedad de todos tus servicios para generar citas generales.
-                  </p>
-                </button>
-              </div>
-
-              {/* Specific service grid (shown only if specific scope is selected) */}
-              {campaignScope === 'specific' && affiliate.services && affiliate.services.length > 0 && (
-                <div className="pt-2 animate-in fade-in duration-200">
-                  <span className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                    Selecciona el servicio a promocionar:
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto p-1">
-                    {affiliate.services.map((svc) => (
-                      <button
-                        key={svc.id}
-                        type="button"
-                        onClick={() => setSelectedServiceId(svc.id)}
-                        className={`p-3 rounded-xl border-2 text-left transition-all ${
-                          selectedServiceId === svc.id
-                            ? 'border-gray-900 bg-gray-900 text-white shadow-xs'
-                            : 'border-gray-200 hover:border-gray-300 bg-white text-gray-900'
-                        }`}
-                      >
-                        <p className={`text-sm font-bold truncate ${selectedServiceId === svc.id ? 'text-white' : 'text-gray-900'}`}>
-                          {svc.name}
-                        </p>
-                        <p className={`text-xs mt-0.5 ${selectedServiceId === svc.id ? 'text-gray-300' : 'text-gray-500'}`}>
-                          ${svc.price.toLocaleString()} MXN · {svc.duration} min
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Global banner (shown when global scope is selected) */}
-              {campaignScope === 'global' && (
-                <div className="p-3.5 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl text-xs text-purple-900 flex items-start gap-2.5 animate-in fade-in duration-200">
-                  <span className="text-base">✨</span>
-                  <div>
-                    <p className="font-bold">Campaña de Marca Completa</p>
-                    <p className="text-purple-800/90 mt-0.5 leading-relaxed">
-                      El video presentará a <strong>{affiliate.businessName || affiliate.name}</strong> como la opción líder en {affiliate.categoryLabel} en {affiliate.city || 'tu ciudad'}, invitando a los usuarios a explorar tu agenda y agendar cualquiera de tus servicios disponibles.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Nivel de Disruptividad (Level 2, 3, 4) */}
-          {(def.level === 2 || def.level === 3 || def.level === 4) && (
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-sm font-semibold text-gray-700">
-                  Nivel de Persuasión y Disruptividad
-                </label>
-                <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
-                  COFEPRIS & PROFECO Compliance
-                </span>
-              </div>
-              <p className="text-xs text-gray-500 mb-2">
-                Define el tono comercial y el gancho inicial del video o anuncio publicitario.
-              </p>
-              <div className="space-y-2">
-                {DISRUPTIVE_LEVELS.map((lvl) => (
-                  <button
-                    key={lvl.value}
-                    type="button"
-                    onClick={() => setDisruptiveLevel(lvl.value as any)}
-                    className={`w-full p-3 rounded-xl border-2 text-left transition-all ${
-                      disruptiveLevel === lvl.value
-                        ? 'border-purple-600 bg-purple-50/70 shadow-xs'
-                        : 'border-gray-200 hover:border-gray-300 bg-white'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-bold text-gray-900">{lvl.label}</span>
-                      <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-gray-100 text-gray-700">
-                        {lvl.badge}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600 leading-snug">{lvl.description}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Voice type (Level 3 & 4) */}
-          {(def.level === 3 || def.level === 4) && (
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Tipo de Voz IA para la Locución (Estilo Vendedor)
-              </label>
-              <div className="space-y-2">
-                {VOICE_TYPES.map((v) => (
-                  <button
-                    key={v.value}
-                    onClick={() => setVoiceType(v.value)}
-                    className={`w-full p-3 rounded-xl border-2 text-left text-sm transition-all ${
-                      voiceType === v.value
-                        ? 'border-gray-900 bg-gray-50 font-bold'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    {v.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Reference photos (Level 2, 3, 4) */}
-          {def.hasReferencePhoto && affiliate.gallery && affiliate.gallery.length > 0 && (
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
-                Fotos de Referencia (opcional) — hasta 3
-              </label>
-              <p className="text-xs text-gray-500 mb-2">
-                {def.level === 2 && 'Se usarán con Grok Image-to-Image para adaptar el flyer a tu estilo real.'}
-                {def.level === 3 && 'Se usarán con Grok Video 1.5 para animar con fotos de tu negocio.'}
-                {def.level === 4 && 'Se usarán con Grok Image-to-Video para el video cinemático.'}
-              </p>
-              <div className="grid grid-cols-4 gap-2">
-                {affiliate.gallery.map((url, i) => (
-                  <button
-                    key={i}
-                    onClick={() => toggleReferencePhoto(url)}
-                    className={`relative aspect-square rounded-lg overflow-hidden border-3 transition-all ${
-                      selectedReferencePhotos.includes(url) ? 'ring-2 ring-gray-900 ring-offset-1' : 'opacity-70 hover:opacity-100'
-                    }`}
-                  >
-                    <img src={url} alt="" className="w-full h-full object-cover" />
-                    {selectedReferencePhotos.includes(url) && (
-                      <div className="absolute inset-0 bg-gray-900/40 flex items-center justify-center">
-                        <CheckCircle2 className="w-5 h-5 text-white" />
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-              {selectedReferencePhotos.length > 0 && (
-                <p className="text-xs text-gray-500 mt-1">{selectedReferencePhotos.length} foto(s) seleccionada(s)</p>
-              )}
-            </div>
-          )}
-
-          {/* Custom instructions */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-semibold text-gray-700">
-                Instrucciones Personalizadas para la IA (Opcional)
-              </label>
-              {def.level === 5 && (
-                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                  Agente WhatsApp 24/7
-                </span>
-              )}
-            </div>
-
-            {/* Quick preset chips for Level 5 */}
-            {def.level === 5 && (
-              <div className="flex flex-wrap gap-1.5 mb-2.5">
-                {[
-                  'Nutrición 24h: Confirmación y encuesta de satisfacción',
-                  'Reagendamiento inteligente si cancelan con enlace directo',
-                  'Fidelización a 30 días con bono para próxima cita',
-                  'Mensaje empático y formal de acuerdo a normas de salud'
-                ].map((preset, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setCustomInstructions(prev => prev ? `${prev}. ${preset}` : preset)}
-                    className="text-[11px] font-medium bg-gray-100 hover:bg-emerald-50 hover:text-emerald-800 text-gray-700 px-2.5 py-1 rounded-lg border border-gray-200 transition-colors"
-                  >
-                    + {preset}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Quick preset chips for Level 4 */}
-            {def.level === 4 && (
-              <div className="flex flex-wrap gap-1.5 mb-2.5">
-                {[
-                  'Cierre con urgencia: Agenda tu cita antes que se agoten los espacios de esta semana',
-                  'Tono cálido y de máxima confianza con respaldo profesional certificado',
-                  'Énfasis en precio transparente sin costos ocultos (PROFECO)'
-                ].map((preset, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setCustomInstructions(prev => prev ? `${prev}. ${preset}` : preset)}
-                    className="text-[11px] font-medium bg-gray-100 hover:bg-rose-50 hover:text-rose-800 text-gray-700 px-2.5 py-1 rounded-lg border border-gray-200 transition-colors"
-                  >
-                    + {preset}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <textarea
-              value={customInstructions}
-              onChange={(e) => setCustomInstructions(e.target.value)}
-              rows={3}
-              placeholder={
-                def.level === 4
-                  ? 'Ej: El video debe tener un tono cálido y empático. Resalta nuestra especialidad en...'
-                  : def.level === 5
-                  ? 'Ej: Quiero que mi agente recuerde a los clientes reagendar si no vienen y les ofrezca un 10% de descuento...'
-                  : 'Ej: Resalta nuestra promoción de verano, que el diseño sea en colores azul y blanco...'
-              }
-              className="w-full border border-gray-200 rounded-xl p-3 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-gray-400 transition-colors resize-none"
-            />
-          </div>
-
-          {/* Kie.ai model info */}
-          {def.kieModel && (
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-800">
-              <p className="font-bold mb-1">Modelo IA que se usará:</p>
-              {def.level === 2 && !selectedReferencePhotos.length && <p><strong>Grok Image 2</strong> — Texto a Imagen de alta fidelidad</p>}
-              {def.level === 2 && selectedReferencePhotos.length > 0 && <p><strong>Grok Image-to-Image</strong> — Genera imagen usando tus fotos como referencia visual</p>}
-              {def.level === 3 && <p><strong>Grok Video 1.5</strong> — Anima el flyer en video con locución IA</p>}
-              {def.level === 4 && <p><strong>Grok Image-to-Video</strong> — Genera el video cinemático de 1 minuto</p>}
-            </div>
-          )}
-
-          {/* Dispatch button */}
+        <div className="flex items-center gap-2">
           <button
-            onClick={handleDispatch}
-            disabled={isDispatching}
-            className={`w-full py-4 rounded-xl text-white font-black text-sm flex items-center justify-center gap-2 transition-all ${
-              isDispatching
-                ? 'bg-gray-400 cursor-not-allowed'
-                : `bg-gradient-to-r ${def.gradient} hover:shadow-lg hover:scale-[1.01]`
+            onClick={() => setActiveTab('stages')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              activeTab === 'stages' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            {isDispatching ? (
-              <><RefreshCw className="w-5 h-5 animate-spin" /> Procesando con IA...</>
-            ) : (
-              <><Sparkles className="w-5 h-5" /> Generar Nivel {def.level} — {def.title}</>
-            )}
+            4 Etapas
           </button>
+          <button
+            onClick={() => setActiveTab('resources')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              activeTab === 'resources' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Mis Recursos ({readyPackages.length + monthlyVideos.length})
+          </button>
+          {onNavigateToLanding && (
+            <button
+              onClick={onNavigateToLanding}
+              className="px-3 py-2 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 flex items-center gap-1"
+            >
+              <Globe className="w-3.5 h-3.5" /> Mi Página
+            </button>
+          )}
+          {onClose && (
+            <button onClick={onClose} className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200">
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
 
-          {dispatchStatus && (
-            <div className={`p-4 rounded-xl text-sm ${
-              dispatchStatus.includes('Error')
-                ? 'bg-red-50 text-red-700 border border-red-100'
-                : 'bg-blue-50 text-blue-700 border border-blue-100'
-            }`}>
-              {dispatchStatus}
+      {/* Free Plan Lock Banner */}
+      {!guard.isPaid && (
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900">Las herramientas de Marketing están disponibles en el Plan Mensual ($1,200 MXN/mes)</h3>
+              <p className="text-xs text-gray-600">
+                En el Plan Gratuito solo recibes notificaciones de citas por Gmail. Actualiza para desbloquear IA, paquetes 9:16, videos y exposición.
+              </p>
+            </div>
+          </div>
+          {onUpgradePlan && (
+            <button
+              onClick={onUpgradePlan}
+              className="px-5 py-2.5 bg-gray-900 text-white rounded-xl text-xs font-bold hover:bg-black transition-colors"
+            >
+              Actualizar Plan
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Status Toast */}
+      {statusBanner && (
+        <div className={`rounded-xl p-4 flex items-center gap-3 text-sm font-medium ${
+          statusBanner.type === 'success'
+            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+            : 'bg-red-50 text-red-800 border border-red-200'
+        }`}>
+          {statusBanner.type === 'success' ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertCircle className="w-5 h-5 shrink-0" />}
+          <span>{statusBanner.msg}</span>
+        </div>
+      )}
+
+      {activeTab === 'stages' && (
+        <>
+          {/* Monthly Video Rule Banner */}
+          {guard.isPaid && (
+            <div className="bg-slate-900 text-white rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-xs">
+                <Clock className="w-4 h-4 text-amber-400" />
+                <span>
+                  <strong>Regla Mensual de Video ({guard.currentMonth}):</strong> Puedes generar <strong>1 video al mes</strong> (elige Etapa 3 Video Spot ó Etapa 4 Cinematográfico).
+                </span>
+              </div>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                guard.hasVideoThisMonth ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'
+              }`}>
+                {guard.hasVideoThisMonth
+                  ? `Usado: ${guard.videoTypeUsed === 'spot' ? 'Spot' : 'Cinematográfico'} (próximo en ${guard.daysUntilNextMonth}d)`
+                  : '1 Video disponible este mes'}
+              </span>
             </div>
           )}
-        </div>
-      </div>
-    );
-  };
 
-  // ─── MAIN RENDER ──────────────────────────────────────────────────────────
-  return (
-    <div className="h-full bg-gray-50/50 flex flex-col">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-20">
-        <div>
-          <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-purple-600" />
-            Herramientas de Marketing Inteligente
-          </h1>
-          <p className="text-gray-500 text-sm mt-0.5">
-            5 niveles de IA para hacer crecer tu negocio — Powered by DeepSeek + Kie.ai (Grok Image 2)
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {/* Tab switcher */}
-          <div className="flex bg-gray-100 rounded-xl p-1">
-            <button
-              onClick={() => { setActiveTab('catalog'); setSelectedLevel(null); }}
-              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'catalog' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              Catálogo
-            </button>
-            <button
-              onClick={() => { setActiveTab('my_assets'); setSelectedLevel(null); }}
-              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 ${activeTab === 'my_assets' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              Mis Materiales
-              {assets.length > 0 && (
-                <span className="bg-gray-900 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">{assets.length}</span>
-              )}
-            </button>
+          {/* 4 Stage Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {stages.map(stage => {
+              const isOpen = activeEtapa === stage.id;
+              return (
+                <div
+                  key={stage.id}
+                  className={`rounded-2xl border p-5 transition-all bg-white ${
+                    !stage.unlocked
+                      ? 'border-gray-200 opacity-60'
+                      : isOpen
+                      ? 'border-indigo-500 ring-2 ring-indigo-100 shadow-md'
+                      : 'border-gray-200 hover:shadow-md'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stage.gradient} flex items-center justify-center shadow-sm`}>
+                        {stage.unlocked ? stage.icon : <Lock className="w-5 h-5 text-white" />}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                            Etapa {stage.num}
+                          </span>
+                          {stage.completed && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">
+                              <CheckCircle2 className="w-3 h-3" /> Completada
+                            </span>
+                          )}
+                          {!stage.unlocked && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-600">
+                              <Lock className="w-3 h-3" /> Bloqueada
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="font-bold text-gray-900 text-base">{stage.title}</h3>
+                        <p className="text-xs text-gray-500">{stage.subtitle}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-gray-600 mb-4">{stage.desc}</p>
+
+                  {!stage.unlocked ? (
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-600 flex items-center gap-2">
+                      <Lock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                      <span>{stage.lockReason}</span>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setActiveEtapa(isOpen ? null : stage.id)}
+                      className="w-full py-2.5 px-4 rounded-xl bg-gray-900 hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors"
+                    >
+                      {isOpen ? 'Cerrar Etapa' : `Abrir Etapa ${stage.num}`}
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
-          {onClose && (
-            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors">
-              <X className="w-5 h-5" />
-            </button>
-          )}
-        </div>
-      </div>
 
-      {/* Body */}
-      <div className="flex-1 overflow-y-auto p-6 max-w-7xl mx-auto w-full">
-
-        {/* ── CATALOG TAB ── */}
-        {activeTab === 'catalog' && !selectedLevel && (
-          <div className="space-y-4">
-            {/* Cinematic video free banner */}
-            {hasFreeVideoAvailable && (
-              <div className="bg-gradient-to-r from-rose-600 to-pink-500 text-white rounded-2xl p-4 flex items-center gap-3">
-                <Star className="w-8 h-8 text-yellow-300 shrink-0" />
+          {/* ─── ACTIVE ETAPA WORKSPACE ────────────────────────────────────── */}
+          {activeEtapa === 'etapa1' && guard.canUseEtapa1 && (
+            <div className="bg-white rounded-2xl border border-blue-200 p-6 shadow-sm space-y-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="font-black">🎬 Tienes 1 Video Cinematográfico GRATIS disponible</p>
-                  <p className="text-white/80 text-sm">Cada afiliado recibe 1 video profesional de 1 minuto cada 2 meses. ¡Úsalo ahora!</p>
+                  <h3 className="text-lg font-bold text-gray-900">Etapa 1: Clientes Ideales + Productos/Servicios</h3>
+                  <p className="text-xs text-gray-500">Genera buyer personas automáticamente con DeepSeek o agrégalos manualmente.</p>
                 </div>
                 <button
-                  onClick={() => setSelectedLevel(MARKETING_LEVELS.find(l => l.level === 4)!)}
-                  className="ml-auto shrink-0 bg-white text-rose-600 font-black text-sm px-4 py-2 rounded-xl hover:bg-rose-50 transition-all"
+                  onClick={handleGeneratePersonasAI}
+                  disabled={isGeneratingE1}
+                  className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 disabled:opacity-60"
                 >
-                  Generar
+                  {isGeneratingE1 ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  {isGeneratingE1 ? 'Generando...' : 'Generar 3 Clientes Ideales con IA'}
                 </button>
               </div>
-            )}
 
-            {/* Level cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {MARKETING_LEVELS.map((def) => (
-                <button
-                  key={def.level}
-                  onClick={() => setSelectedLevel(def)}
-                  className={`p-6 rounded-2xl border-2 ${def.borderColor} bg-white text-left hover:-translate-y-1 hover:shadow-lg transition-all duration-200 cursor-pointer`}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={`p-3 rounded-xl bg-gradient-to-br ${def.gradient} text-white`}>
-                      {def.icon}
+              {/* Existing Personas */}
+              {personas.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {personas.map(p => (
+                    <div key={p.id} className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 space-y-1.5">
+                      <h4 className="font-bold text-sm text-gray-900">{p.name}</h4>
+                      <p className="text-xs text-gray-600">{p.ageRange} • {p.gender} • {p.specificZone}</p>
+                      <p className="text-xs italic text-blue-700">"{p.summaryHook}"</p>
                     </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className="text-xs font-black text-gray-400 uppercase tracking-wider">Nivel {def.level}</span>
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${def.badgeColor}`}>
-                        {def.badge}
-                      </span>
-                    </div>
-                  </div>
-                  <h3 className="text-base font-black text-gray-900 mb-1">{def.title}</h3>
-                  <p className="text-xs font-semibold text-gray-500 mb-2">{def.subtitle}</p>
-                  <p className="text-xs text-gray-600 leading-relaxed">{def.description.substring(0, 100)}...</p>
+                  ))}
+                </div>
+              )}
 
-                  <div className="mt-4 flex items-center gap-1 text-gray-400 text-xs font-semibold">
-                    <span>Comenzar</span><ChevronRight className="w-3 h-3" />
-                  </div>
+              {/* Manual Persona Form */}
+              <form onSubmit={handleAddManualPersona} className="bg-gray-50 rounded-xl p-4 space-y-3 border border-gray-200">
+                <h4 className="text-xs font-bold uppercase text-gray-600">Agregar Cliente Ideal Manualmente</h4>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <input
+                    value={newPersonaName}
+                    onChange={e => setNewPersonaName(e.target.value)}
+                    placeholder="Nombre del perfil (ej. Mamá activa)"
+                    className="px-3 py-2 rounded-lg border border-gray-200 text-xs bg-white"
+                    required
+                  />
+                  <input
+                    value={newPersonaAge}
+                    onChange={e => setNewPersonaAge(e.target.value)}
+                    placeholder="Edad (ej. 30-45)"
+                    className="px-3 py-2 rounded-lg border border-gray-200 text-xs bg-white"
+                  />
+                  <input
+                    value={newPersonaGender}
+                    onChange={e => setNewPersonaGender(e.target.value)}
+                    placeholder="Género"
+                    className="px-3 py-2 rounded-lg border border-gray-200 text-xs bg-white"
+                  />
+                  <input
+                    value={newPersonaZone}
+                    onChange={e => setNewPersonaZone(e.target.value)}
+                    placeholder="Zona / Ciudad"
+                    className="px-3 py-2 rounded-lg border border-gray-200 text-xs bg-white"
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <input
+                    value={newPersonaFear}
+                    onChange={e => setNewPersonaFear(e.target.value)}
+                    placeholder="Miedos (separados por coma)"
+                    className="px-3 py-2 rounded-lg border border-gray-200 text-xs bg-white"
+                  />
+                  <input
+                    value={newPersonaDesire}
+                    onChange={e => setNewPersonaDesire(e.target.value)}
+                    placeholder="Deseos (separados por coma)"
+                    className="px-3 py-2 rounded-lg border border-gray-200 text-xs bg-white"
+                  />
+                  <input
+                    value={newPersonaHook}
+                    onChange={e => setNewPersonaHook(e.target.value)}
+                    placeholder="Gancho publicitario (1 línea)"
+                    className="px-3 py-2 rounded-lg border border-gray-200 text-xs bg-white"
+                  />
+                </div>
+                <button type="submit" className="px-4 py-2 bg-gray-900 text-white rounded-lg text-xs font-bold flex items-center gap-1.5">
+                  <Plus className="w-3.5 h-3.5" /> Guardar Cliente Ideal
                 </button>
-              ))}
+              </form>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* ── LEVEL DETAIL ── */}
-        {activeTab === 'catalog' && selectedLevel && renderLevelDetail()}
-
-        {/* ── MY ASSETS TAB ── */}
-        {activeTab === 'my_assets' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+          {activeEtapa === 'etapa2' && guard.canUseEtapa2 && (
+            <div className="bg-white rounded-2xl border border-purple-200 p-6 shadow-sm space-y-5">
               <div>
-                <h2 className="text-lg font-black text-gray-900">Mis Materiales Generados</h2>
-                <p className="text-sm text-gray-500">Los recursos generados por la IA aparecen aquí en tiempo real.</p>
+                <h3 className="text-lg font-bold text-gray-900">Etapa 2: Paquete de 3 Imágenes 9:16</h3>
+                <p className="text-xs text-gray-500">Genera automáticamente: 1) Publicitaria, 2) Educativa, 3) Promoción.</p>
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">1. Selecciona Cliente Ideal</label>
+                  <select
+                    value={selectedPersonaId}
+                    onChange={e => setSelectedPersonaId(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-xs bg-white"
+                  >
+                    {personas.map(p => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.ageRange})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">2. Producto o Servicio</label>
+                  <select
+                    value={selectedServiceId}
+                    onChange={e => setSelectedServiceId(e.target.value)}
+                    disabled={isGlobalAd}
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-xs bg-white disabled:opacity-50"
+                  >
+                    {affiliate.services.map(s => (
+                      <option key={s.id} value={s.id}>{s.name} — ${s.price} MXN</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-end">
+                  <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 bg-purple-50 border border-purple-100 rounded-xl px-3 py-2.5 w-full cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isGlobalAd}
+                      onChange={e => setIsGlobalAd(e.target.checked)}
+                      className="rounded"
+                    />
+                    Crear Anuncio Global (todo el negocio)
+                  </label>
+                </div>
+              </div>
+
               <button
-                onClick={() => setActiveTab('catalog')}
-                className="flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-black transition-all"
+                onClick={handleGenerateImagePackage}
+                disabled={isGeneratingE2}
+                className="px-5 py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 disabled:opacity-60"
               >
-                <Plus className="w-4 h-4" /> Generar nuevo
+                {isGeneratingE2 ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
+                {isGeneratingE2 ? 'Generando 3 imágenes 9:16...' : 'Generar Paquete de 3 Imágenes 9:16'}
               </button>
             </div>
+          )}
 
-            {isLoadingAssets ? (
-              <div className="flex items-center justify-center py-16">
-                <RefreshCw className="w-8 h-8 animate-spin text-gray-400" />
+          {activeEtapa === 'etapa3' && guard.canUseEtapa3 && !guard.hasVideoThisMonth && (
+            <div className="bg-white rounded-2xl border border-orange-200 p-6 shadow-sm space-y-4">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Etapa 3: Video Spot con Audio en Español</h3>
+                <p className="text-xs text-gray-500">Usa tus 3 imágenes de la Etapa 2 como referencia, incluye locución y música.</p>
               </div>
-            ) : assets.length === 0 ? (
-              <div className="text-center py-20 text-gray-400">
-                <ImageIcon className="w-14 h-14 mx-auto mb-4 opacity-30" />
-                <p className="font-bold text-gray-600">Aún no tienes materiales generados</p>
-                <p className="text-sm mt-1">Ve al catálogo y genera tu primera campaña con IA</p>
-                <button
-                  onClick={() => setActiveTab('catalog')}
-                  className="mt-4 px-6 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-black transition-all"
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Paquete de Imágenes Base</label>
+                  <select
+                    value={selectedPackageId}
+                    onChange={e => setSelectedPackageId(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-xs bg-white"
+                  >
+                    {readyPackages.map(p => (
+                      <option key={p.id} value={p.id}>{p.serviceName || 'Anuncio Global'} — {p.buyerPersonaName}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Tipo de Voz (Español)</label>
+                  <select
+                    value={voiceType}
+                    onChange={e => setVoiceType(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-xs bg-white"
+                  >
+                    {VOICE_TYPES.map(v => (
+                      <option key={v.value} value={v.value}>{v.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Detalles de la Promoción y Producto</label>
+                <textarea
+                  value={promotionText}
+                  onChange={e => setPromotionText(e.target.value)}
+                  rows={3}
+                  placeholder="Ej. 20% de descuento en tu primera sesión esta semana..."
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs"
+                />
+              </div>
+              <button
+                onClick={() => handleGenerateVideo('spot')}
+                disabled={isGeneratingE3}
+                className="px-5 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 disabled:opacity-60"
+              >
+                {isGeneratingE3 ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Video className="w-4 h-4" />}
+                {isGeneratingE3 ? 'Produciendo Video Spot...' : 'Generar Video Spot (Usa tu video mensual)'}
+              </button>
+            </div>
+          )}
+
+          {activeEtapa === 'etapa4' && guard.canUseEtapa4 && !guard.hasVideoThisMonth && (
+            <div className="bg-white rounded-2xl border border-rose-200 p-6 shadow-sm space-y-4">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Etapa 4: Video Cinematográfico</h3>
+                <p className="text-xs text-gray-500">Producción cinematográfica de alto impacto basada en tu paquete de Etapa 2.</p>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Paquete de Imágenes Base</label>
+                <select
+                  value={selectedPackageId}
+                  onChange={e => setSelectedPackageId(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-xs bg-white"
                 >
-                  Ir al Catálogo
-                </button>
+                  {readyPackages.map(p => (
+                    <option key={p.id} value={p.id}>{p.serviceName || 'Anuncio Global'} — {p.buyerPersonaName}</option>
+                  ))}
+                </select>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {assets.map((asset) => (
-                  <AssetCard
-                    key={asset.id}
-                    asset={asset}
-                    affiliate={affiliate}
-                    onAddToPage={handleToggleOnLanding}
-                    onTogglingId={togglingAssetId}
-                  />
-                ))}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Mensaje Principal (Opcional)</label>
+                <textarea
+                  value={cinematicMessage}
+                  onChange={e => setCinematicMessage(e.target.value)}
+                  rows={2}
+                  placeholder="Ej. Recupera tu bienestar con atención profesional..."
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs"
+                />
               </div>
-            )}
+              <button
+                onClick={() => handleGenerateVideo('cinematic')}
+                disabled={isGeneratingE4}
+                className="px-5 py-3 bg-gradient-to-r from-rose-600 to-red-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 disabled:opacity-60"
+              >
+                {isGeneratingE4 ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Film className="w-4 h-4" />}
+                {isGeneratingE4 ? 'Produciendo Video Cinematográfico...' : 'Generar Video Cinematográfico (Usa tu video mensual)'}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ─── MIS RECURSOS SECTION ──────────────────────────────────────────── */}
+      <div className="space-y-4">
+        <h3 className="text-base font-bold text-gray-900">📁 Mis Recursos Generados</h3>
+
+        {readyPackages.length === 0 && monthlyVideos.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center text-gray-400 text-sm">
+            Aún no has generado paquetes de imágenes o videos. Completa la Etapa 1 para comenzar.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Image Packages */}
+            {packages.map(pkg => {
+              const currentImgKey = packageActiveImageTab[pkg.id] || 'publicitaria';
+              const currentImgUrl = pkg.images[currentImgKey] || pkg.images.publicitaria || '';
+              return (
+                <div key={pkg.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm flex flex-col">
+                  <div className="bg-gray-900 aspect-[9/12] max-h-72 relative flex items-center justify-center">
+                    {currentImgUrl ? (
+                      <img src={currentImgUrl} alt={currentImgKey} className="w-full h-full object-cover" />
+                    ) : (
+                      <ImageIcon className="w-10 h-10 text-white/30" />
+                    )}
+                    <div className="absolute top-2 left-2 flex gap-1">
+                      {(['publicitaria', 'educativa', 'promocion'] as const).map(k => (
+                        <button
+                          key={k}
+                          onClick={() => setPackageActiveImageTab(prev => ({ ...prev, [pkg.id]: k }))}
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold capitalize ${
+                            currentImgKey === k ? 'bg-white text-gray-900' : 'bg-black/60 text-white'
+                          }`}
+                        >
+                          {k}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="p-4 flex-1 flex flex-col gap-2">
+                    <h4 className="font-bold text-sm text-gray-900">{pkg.serviceName || 'Anuncio Global'}</h4>
+                    <p className="text-xs text-gray-500">Público: {pkg.buyerPersonaName}</p>
+                    {pkg.publicationText && (
+                      <p className="text-xs text-gray-600 italic line-clamp-2">"{pkg.publicationText}"</p>
+                    )}
+                    <div className="mt-auto pt-2 flex flex-wrap gap-2">
+                      <button
+                        onClick={() => handleAddPackageToLanding(pkg)}
+                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold ${
+                          pkg.addedToLanding ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-900 text-white'
+                        }`}
+                      >
+                        {pkg.addedToLanding ? '✅ En mi página' : '+ Agregar a página'}
+                      </button>
+                      {currentImgUrl && (
+                        <a
+                          href={currentImgUrl}
+                          download={`citasmas-${pkg.id}-${currentImgKey}.png`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="py-2 px-3 rounded-xl text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                      <button
+                        onClick={() => handleSolicitarExposicion('image_package', pkg.id, currentImgUrl, pkg.publicationText || '')}
+                        disabled={exposureSuccessIds[pkg.id]}
+                        className="w-full py-2 px-3 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 flex items-center justify-center gap-1.5 disabled:opacity-60"
+                      >
+                        <Megaphone className="w-3.5 h-3.5" />
+                        {exposureSuccessIds[pkg.id] ? '✅ Exposición Solicitada' : 'Solicitar Exposición en CitasMás'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Monthly Videos */}
+            {monthlyVideos.map(vid => (
+              <div key={vid.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm flex flex-col">
+                <div className="bg-gray-900 aspect-[9/12] max-h-72 relative flex items-center justify-center">
+                  {vid.videoUrl ? (
+                    <video src={vid.videoUrl} poster={vid.thumbnailUrl} controls className="w-full h-full object-cover" />
+                  ) : (
+                    <Film className="w-10 h-10 text-white/30" />
+                  )}
+                  <span className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-bold">
+                    {vid.videoType === 'spot' ? 'Video Spot' : 'Cinematográfico'} • {vid.month}
+                  </span>
+                </div>
+                <div className="p-4 flex-1 flex flex-col gap-2">
+                  <h4 className="font-bold text-sm text-gray-900">
+                    {vid.videoType === 'spot' ? 'Video Spot Audio ES' : 'Video Cinematográfico'}
+                  </h4>
+                  {vid.publicationText && (
+                    <p className="text-xs text-gray-600 italic line-clamp-2">"{vid.publicationText}"</p>
+                  )}
+                  <div className="mt-auto pt-2 flex flex-wrap gap-2">
+                    {vid.videoUrl && (
+                      <a
+                        href={vid.videoUrl}
+                        download={`citasmas-video-${vid.id}.mp4`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center justify-center gap-1.5"
+                      >
+                        <Download className="w-3.5 h-3.5" /> Descargar Video
+                      </a>
+                    )}
+                    <button
+                      onClick={() => handleSolicitarExposicion('video', vid.id, vid.videoUrl || vid.thumbnailUrl || '', vid.publicationText || '')}
+                      disabled={exposureSuccessIds[vid.id]}
+                      className="w-full py-2 px-3 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 flex items-center justify-center gap-1.5 disabled:opacity-60"
+                    >
+                      <Megaphone className="w-3.5 h-3.5" />
+                      {exposureSuccessIds[vid.id] ? '✅ Exposición Solicitada' : 'Solicitar Exposición en CitasMás'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

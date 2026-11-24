@@ -62,12 +62,10 @@ export default function App() {
 
   // Global Plan Upgrade Modal state
   const [isGlobalPlanModalOpen, setIsGlobalPlanModalOpen] = useState(false);
-  const [globalUpgradeTargetPlan, setGlobalUpgradeTargetPlan] = useState<SubscriptionPlanType | 'turbo'>('pro');
+  const [globalUpgradeTargetPlan, setGlobalUpgradeTargetPlan] = useState<SubscriptionPlanType | 'turbo'>('monthly');
 
   const handleOpenUpgradePlan = () => {
-    const nextPlan: SubscriptionPlanType =
-      currentAffiliateUser?.plan === 'basico' ? 'pro' : currentAffiliateUser?.plan === 'pro' ? 'equipo' : 'equipo';
-    setGlobalUpgradeTargetPlan(nextPlan);
+    setGlobalUpgradeTargetPlan('monthly');
     setIsGlobalPlanModalOpen(true);
   };
 
@@ -201,6 +199,19 @@ export default function App() {
     try {
       const list = await DataService.getInstance().getAffiliates();
       setAffiliates(list);
+
+      // Deep link support for /agenda/:affiliateId or ?agenda=:affiliateId
+      if (typeof window !== 'undefined') {
+        const pathMatch = window.location.pathname.match(/^\/agenda\/([^/]+)/);
+        const queryAgenda = new URLSearchParams(window.location.search).get('agenda');
+        const targetId = pathMatch?.[1] || queryAgenda;
+        if (targetId) {
+          const found = list.find(a => a.id === targetId || a.shareSlug === targetId);
+          if (found) {
+            setSelectedAffiliate(found);
+          }
+        }
+      }
 
       const loggedUser = AuthService.getInstance().getCurrentUser();
       if (loggedUser?.role === 'affiliate') {

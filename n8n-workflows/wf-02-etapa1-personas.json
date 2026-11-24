@@ -1,0 +1,118 @@
+﻿{
+    "settings":  {
+                     "executionOrder":  "v1"
+                 },
+    "name":  "WF-02: Etapa 1 — Buyer Personas DeepSeek",
+    "connections":  {
+                        "Webhook":  {
+                                        "main":  [
+                                                     {
+                                                         "node":  "DeepSeek Personas",
+                                                         "type":  "main",
+                                                         "index":  0
+                                                     }
+                                                 ]
+                                    },
+                        "Parsear Personas":  {
+                                                 "main":  [
+                                                              {
+                                                                  "node":  "Responder",
+                                                                  "type":  "main",
+                                                                  "index":  0
+                                                              }
+                                                          ]
+                                             },
+                        "DeepSeek Personas":  {
+                                                  "main":  [
+                                                               {
+                                                                   "node":  "Parsear Personas",
+                                                                   "type":  "main",
+                                                                   "index":  0
+                                                               }
+                                                           ]
+                                              }
+                    },
+    "nodes":  [
+                  {
+                      "id":  "wh-e1",
+                      "name":  "Webhook",
+                      "type":  "n8n-nodes-base.webhook",
+                      "position":  [
+                                       250,
+                                       300
+                                   ],
+                      "parameters":  {
+                                         "path":  "marketing-etapa1-personas",
+                                         "responseMode":  "responseNode",
+                                         "options":  {
+
+                                                     },
+                                         "httpMethod":  "POST"
+                                     },
+                      "typeVersion":  2
+                  },
+                  {
+                      "id":  "ds-e1",
+                      "name":  "DeepSeek Personas",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "position":  [
+                                       550,
+                                       300
+                                   ],
+                      "parameters":  {
+                                         "headerParameters":  {
+                                                                  "parameters":  [
+                                                                                     {
+                                                                                         "value":  "Bearer sk-cf162528184047e8a46e90a388ab90d6",
+                                                                                         "name":  "Authorization"
+                                                                                     },
+                                                                                     {
+                                                                                         "value":  "application/json",
+                                                                                         "name":  "Content-Type"
+                                                                                     }
+                                                                                 ]
+                                                              },
+                                         "method":  "POST",
+                                         "specifyBody":  "json",
+                                         "jsonBody":  "={\"model\":\"deepseek-chat\",\"messages\":[{\"role\":\"system\",\"content\":\"Eres experto en marketing. Responde SOLO JSON array con 3 buyer personas.\"},{\"role\":\"user\",\"content\":\"Negocio: {{$json.businessName}}, Categoria: {{$json.category}}, Ciudad: {{$json.city}}, Servicios: {{$json.services}}\"}],\"temperature\":0.7}",
+                                         "url":  "https://api.deepseek.com/chat/completions",
+                                         "sendHeaders":  true,
+                                         "options":  {
+
+                                                     },
+                                         "sendBody":  true
+                                     },
+                      "typeVersion":  4.2
+                  },
+                  {
+                      "id":  "code-e1",
+                      "name":  "Parsear Personas",
+                      "type":  "n8n-nodes-base.code",
+                      "position":  [
+                                       850,
+                                       300
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "const raw = $input.first().json.choices[0].message.content; let personas = []; try { const m = raw.match(/\\[.*\\]/s); personas = JSON.parse(m ? m[0] : raw); } catch(e) {} return [{ json: { ok: true, personas, affiliateId: $(\u0027Webhook\u0027).first().json.affiliateId } }];"
+                                     },
+                      "typeVersion":  2
+                  },
+                  {
+                      "id":  "resp-e1",
+                      "name":  "Responder",
+                      "type":  "n8n-nodes-base.respondToWebhook",
+                      "position":  [
+                                       1150,
+                                       300
+                                   ],
+                      "parameters":  {
+                                         "responseBody":  "={{JSON.stringify($json)}}",
+                                         "respondWith":  "json",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "typeVersion":  1.1
+                  }
+              ]
+}

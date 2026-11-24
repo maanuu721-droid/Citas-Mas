@@ -23,7 +23,13 @@ import {
   ReferredAffiliateItem,
   PromoterPayoutRecord,
   MarketingAsset,
-  PromotionOrder
+  PromotionOrder,
+  CRMClient,
+  CRMReminder,
+  ExposureRequest,
+  ImagePackage916,
+  MonthlyVideoRecord,
+  AdminMarketingAsset
 } from '../types.ts';
 import { INITIAL_AFFILIATES, INITIAL_REVIEWS, INITIAL_MARKETING_REQUESTS } from '../data/mexicoData.ts';
 import { createWhatsAppSubscriptionRenewalMessage, createWhatsAppMarketingAuthorizedMessage } from '../utils/twilioWhatsApp.ts';
@@ -1823,6 +1829,155 @@ export class DataService {
     } catch (err) {
       console.warn('[DataService] getAllPromotionOrders error:', err);
       return [];
+    }
+  }
+
+  // ============================================================
+  // CITAS MÁS v2.0 — CRM, EXPOSURE REQUESTS, MARKETING v2 & ADMIN IA
+  // ============================================================
+
+  public async getCRMClients(affiliateId: string): Promise<CRMClient[]> {
+    try {
+      const q = query(collection(db, 'crm_clients'), where('affiliateId', '==', affiliateId));
+      const snap = await getDocs(q);
+      return snap.docs.map((d) => d.data() as CRMClient);
+    } catch (err) {
+      console.warn('[DataService] getCRMClients error:', err);
+      return [];
+    }
+  }
+
+  public async saveCRMClient(client: CRMClient): Promise<void> {
+    try {
+      const ref = doc(db, 'crm_clients', client.id);
+      await setDoc(ref, { ...client, updatedAt: new Date().toISOString() }, { merge: true });
+    } catch (err) {
+      console.warn('[DataService] saveCRMClient error:', err);
+    }
+  }
+
+  public async getCRMReminders(affiliateId: string): Promise<CRMReminder[]> {
+    try {
+      const q = query(
+        collection(db, 'crm_reminders'),
+        where('affiliateId', '==', affiliateId),
+        orderBy('scheduledAt', 'asc')
+      );
+      const snap = await getDocs(q);
+      return snap.docs.map((d) => d.data() as CRMReminder);
+    } catch (err) {
+      console.warn('[DataService] getCRMReminders error:', err);
+      return [];
+    }
+  }
+
+  public async saveCRMReminder(reminder: CRMReminder): Promise<void> {
+    try {
+      const ref = doc(db, 'crm_reminders', reminder.id);
+      await setDoc(ref, reminder, { merge: true });
+    } catch (err) {
+      console.warn('[DataService] saveCRMReminder error:', err);
+    }
+  }
+
+  public async createExposureRequest(request: ExposureRequest): Promise<void> {
+    try {
+      const ref = doc(db, 'exposure_requests', request.id);
+      await setDoc(ref, request, { merge: true });
+    } catch (err) {
+      console.warn('[DataService] createExposureRequest error:', err);
+    }
+  }
+
+  public async getExposureRequests(): Promise<ExposureRequest[]> {
+    try {
+      const q = query(collection(db, 'exposure_requests'), orderBy('requestedAt', 'desc'), limit(100));
+      const snap = await getDocs(q);
+      return snap.docs.map((d) => d.data() as ExposureRequest);
+    } catch (err) {
+      console.warn('[DataService] getExposureRequests error:', err);
+      return [];
+    }
+  }
+
+  public async updateExposureRequest(id: string, updates: Partial<ExposureRequest>): Promise<void> {
+    try {
+      const ref = doc(db, 'exposure_requests', id);
+      await updateDoc(ref, updates);
+    } catch (err) {
+      console.warn('[DataService] updateExposureRequest error:', err);
+    }
+  }
+
+  public async saveImagePackage(affiliateId: string, pkg: ImagePackage916): Promise<void> {
+    try {
+      const ref = doc(db, 'marketing_assets', pkg.id);
+      await setDoc(ref, { ...pkg, _type: 'image_package916' }, { merge: true });
+      const affRef = doc(db, 'affiliates', affiliateId);
+      const affSnap = await getDoc(affRef);
+      if (affSnap.exists()) {
+        const existing = (affSnap.data()?.imagePackages || []) as ImagePackage916[];
+        const updated = existing.filter((p) => p.id !== pkg.id);
+        updated.unshift(pkg);
+        await updateDoc(affRef, {
+          imagePackages: updated,
+          etapa2Completed: true,
+          updatedAt: new Date().toISOString()
+        });
+      }
+    } catch (err) {
+      console.warn('[DataService] saveImagePackage error:', err);
+    }
+  }
+
+  public async saveMonthlyVideo(affiliateId: string, video: MonthlyVideoRecord): Promise<void> {
+    try {
+      const ref = doc(db, 'marketing_assets', video.id);
+      await setDoc(ref, { ...video, _type: 'monthly_video' }, { merge: true });
+      const affRef = doc(db, 'affiliates', affiliateId);
+      const affSnap = await getDoc(affRef);
+      if (affSnap.exists()) {
+        const existing = (affSnap.data()?.monthlyVideos || []) as MonthlyVideoRecord[];
+        const updated = existing.filter((v) => v.id !== video.id);
+        updated.unshift(video);
+        await updateDoc(affRef, {
+          monthlyVideos: updated,
+          updatedAt: new Date().toISOString()
+        });
+      }
+    } catch (err) {
+      console.warn('[DataService] saveMonthlyVideo error:', err);
+    }
+  }
+
+  public async getAllMarketingAssetsForAdmin(): Promise<any[]> {
+    try {
+      const q = query(collection(db, 'marketing_assets'), orderBy('createdAt', 'desc'), limit(150));
+      const snap = await getDocs(q);
+      return snap.docs.map((d) => d.data());
+    } catch (err) {
+      console.warn('[DataService] getAllMarketingAssetsForAdmin error:', err);
+      return [];
+    }
+  }
+
+  public async getAdminMarketingAssets(): Promise<AdminMarketingAsset[]> {
+    try {
+      const q = query(collection(db, 'admin_marketing_assets'), orderBy('createdAt', 'desc'), limit(100));
+      const snap = await getDocs(q);
+      return snap.docs.map((d) => d.data() as AdminMarketingAsset);
+    } catch (err) {
+      console.warn('[DataService] getAdminMarketingAssets error:', err);
+      return [];
+    }
+  }
+
+  public async saveAdminMarketingAsset(asset: AdminMarketingAsset): Promise<void> {
+    try {
+      const ref = doc(db, 'admin_marketing_assets', asset.id);
+      await setDoc(ref, asset, { merge: true });
+    } catch (err) {
+      console.warn('[DataService] saveAdminMarketingAsset error:', err);
     }
   }
 }

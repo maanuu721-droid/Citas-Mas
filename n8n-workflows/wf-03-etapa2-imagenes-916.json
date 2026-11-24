@@ -1,0 +1,96 @@
+﻿{
+    "settings":  {
+                     "executionOrder":  "v1"
+                 },
+    "name":  "WF-03: Etapa 2 — Paquete 3 Imagenes 9:16",
+    "connections":  {
+                        "DeepSeek Prompts":  {
+                                                 "main":  [
+                                                              {
+                                                                  "node":  "Responder",
+                                                                  "type":  "main",
+                                                                  "index":  0
+                                                              }
+                                                          ]
+                                             },
+                        "Webhook":  {
+                                        "main":  [
+                                                     {
+                                                         "node":  "DeepSeek Prompts",
+                                                         "type":  "main",
+                                                         "index":  0
+                                                     }
+                                                 ]
+                                    }
+                    },
+    "nodes":  [
+                  {
+                      "id":  "wh-e2",
+                      "name":  "Webhook",
+                      "type":  "n8n-nodes-base.webhook",
+                      "position":  [
+                                       100,
+                                       300
+                                   ],
+                      "parameters":  {
+                                         "path":  "marketing-etapa2-imagenes",
+                                         "responseMode":  "responseNode",
+                                         "options":  {
+
+                                                     },
+                                         "httpMethod":  "POST"
+                                     },
+                      "typeVersion":  2
+                  },
+                  {
+                      "id":  "ds-e2",
+                      "name":  "DeepSeek Prompts",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "position":  [
+                                       400,
+                                       300
+                                   ],
+                      "parameters":  {
+                                         "headerParameters":  {
+                                                                  "parameters":  [
+                                                                                     {
+                                                                                         "value":  "Bearer sk-cf162528184047e8a46e90a388ab90d6",
+                                                                                         "name":  "Authorization"
+                                                                                     },
+                                                                                     {
+                                                                                         "value":  "application/json",
+                                                                                         "name":  "Content-Type"
+                                                                                     }
+                                                                                 ]
+                                                              },
+                                         "method":  "POST",
+                                         "specifyBody":  "json",
+                                         "jsonBody":  "={\"model\":\"deepseek-chat\",\"messages\":[{\"role\":\"system\",\"content\":\"Genera JSON con prompts publicitaria, educativa, promocion y publicationText.\"},{\"role\":\"user\",\"content\":\"Negocio: {{$json.businessName}}, Servicio: {{$json.serviceName}}, Persona: {{$json.buyerPersonaName}}\"}],\"temperature\":0.8}",
+                                         "url":  "https://api.deepseek.com/chat/completions",
+                                         "sendHeaders":  true,
+                                         "options":  {
+
+                                                     },
+                                         "sendBody":  true
+                                     },
+                      "typeVersion":  4.2
+                  },
+                  {
+                      "id":  "resp-e2",
+                      "name":  "Responder",
+                      "type":  "n8n-nodes-base.respondToWebhook",
+                      "position":  [
+                                       700,
+                                       300
+                                   ],
+                      "parameters":  {
+                                         "responseBody":  "={{JSON.stringify($json)}}",
+                                         "respondWith":  "json",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "typeVersion":  1.1
+                  }
+              ]
+}

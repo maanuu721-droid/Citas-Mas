@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Affiliate, SubscriptionPlanType, ServiceItem } from '../types.ts';
 import { DataService } from '../services/dataService.ts';
 import { StripeService } from '../services/stripeService.ts';
@@ -45,23 +45,38 @@ interface PlanDefinition {
 
 const PLANS_CONFIG: PlanDefinition[] = [
   {
-    id: 'pro',
-    name: 'Plan Integral CitasMás',
+    id: 'free',
+    name: 'Plan Gratuito',
+    monthlyPrice: 0,
+    annualMonthlyPrice: 0,
+    description: 'Comienza sin costo. Recibe notificaciones de nuevas citas directamente en tu correo Gmail.',
+    badge: 'Sin costo — Siempre gratis',
+    features: [
+      'Perfil básico en CitasMás',
+      'Notificaciones de citas por Gmail',
+      'Gestión básica de servicios y horarios',
+      'Sin acceso a herramientas de Marketing con IA',
+      'Sin acceso al CRM y seguimiento WhatsApp',
+    ]
+  },
+  {
+    id: 'monthly',
+    name: 'Plan Mensual Integral',
     monthlyPrice: 1200,
     annualMonthlyPrice: 1200,
-    description: 'Acceso total y completo a la plataforma: agenda digital, cobro anticipado Stripe, WhatsApp automatizado, landing page y herramientas de marketing con IA.',
-    badge: 'Plan Único • $1,200 MXN al mes (IVA incluido)',
+    description: 'Acceso completo: marketing por etapas con IA, CRM con WhatsApp, link/QR de agenda y solicitud de exposición en redes.',
+    badge: 'Plan Completo • $1,200 MXN/mes (IVA incluido)',
     features: [
-      'Página web pública (Landing Page) oficial en CitasMás',
-      'Cobro anticipado obligatorio de citas con Stripe (0% no-shows)',
-      'Confirmaciones y recordatorios automáticos por WhatsApp (24h y 2h antes)',
-      'Herramientas completas de Marketing e Inteligencia Artificial (DeepSeek y Kie.ai)',
-      'Generación de videos publicitarios de 1 min y flyers 9:16 para redes',
-      'Descubrimiento de cliente ideal (Buyer Personas con IA)',
-      'Agenda digital interactiva con citas y servicios ilimitados',
-      'Dispersión directa de tus ganancias a tu cuenta bancaria (CLABE interbancaria)',
-      'Soporte prioritario y actualizaciones continuas',
-      'Tarifa mensual fija de $1,200 MXN con IVA ya incluido'
+      '🤖 Herramientas de Marketing por Etapas con IA (DeepSeek + Kie.ai)',
+      '🖼️ Paquetes de 3 imágenes 9:16 (publicitaria, educativa, promoción)',
+      '🎬 1 video por mes (Spot con audio en español o Cinematográfico)',
+      '📱 CRM con historial de clientes y recordatorios por WhatsApp',
+      '🔗 Link + QR de agenda pública con tus servicios y horarios',
+      '📢 Solicitar exposición en redes sociales de CitasMás',
+      '💳 Cobro anticipado de citas con Stripe',
+      '📲 Confirmaciones y recordatorios automáticos por WhatsApp',
+      '🏠 Página web pública (Landing Page) oficial en CitasMás',
+      '💰 Dispersión de ganancias directo a tu cuenta bancaria (CLABE)',
     ]
   }
 ];
@@ -69,7 +84,7 @@ const PLANS_CONFIG: PlanDefinition[] = [
 export const PlanCheckoutModal: React.FC<PlanCheckoutModalProps> = ({
   isOpen,
   onClose,
-  initialPlan = 'pro',
+  initialPlan = 'monthly',
   initialCycle = 'monthly',
   initialTurboLevel = 1,
   affiliate,
@@ -145,6 +160,15 @@ export const PlanCheckoutModal: React.FC<PlanCheckoutModalProps> = ({
 
   const handleProcessPayment = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Free plan: no Stripe, just register
+    if (!isServiceMode && selectedPlanId === 'free') {
+      if (onPaymentSuccess) {
+        onPaymentSuccess('free');
+      }
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
@@ -216,7 +240,7 @@ export const PlanCheckoutModal: React.FC<PlanCheckoutModalProps> = ({
         if (affiliate) {
           const updatedAffiliate: Affiliate = {
             ...affiliate,
-            plan: 'pro',
+            plan: 'monthly',
             isTurbo: true,
             turboLevel: 1,
             planExpiresAt: expirationDate.toISOString(),
@@ -651,6 +675,8 @@ export const PlanCheckoutModal: React.FC<PlanCheckoutModalProps> = ({
                       <span>
                         {isServiceMode && service
                           ? `Pagar Servicio ($${totalAmount.toLocaleString('es-MX')} MXN)`
+                          : selectedPlanId === 'free'
+                          ? 'Registrarme Gratis'
                           : totalAmount === 0
                           ? 'Activar Plan por Comisión ($0 MXN)'
                           : `Pagar y Activar ${currentPlanDef.name} ($${totalAmount.toLocaleString('es-MX')} MXN)`}

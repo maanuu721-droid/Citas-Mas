@@ -1,0 +1,92 @@
+﻿{
+    "settings":  {
+                     "executionOrder":  "v1"
+                 },
+    "name":  "WF-08: Exposicion — Alerta Telegram Admin",
+    "connections":  {
+                        "Telegram Admin":  {
+                                               "main":  [
+                                                            {
+                                                                "node":  "Responder",
+                                                                "type":  "main",
+                                                                "index":  0
+                                                            }
+                                                        ]
+                                           },
+                        "Webhook":  {
+                                        "main":  [
+                                                     {
+                                                         "node":  "Telegram Admin",
+                                                         "type":  "main",
+                                                         "index":  0
+                                                     }
+                                                 ]
+                                    }
+                    },
+    "nodes":  [
+                  {
+                      "id":  "wh-exp",
+                      "name":  "Webhook",
+                      "type":  "n8n-nodes-base.webhook",
+                      "position":  [
+                                       100,
+                                       300
+                                   ],
+                      "parameters":  {
+                                         "path":  "exposicion-solicitud",
+                                         "responseMode":  "responseNode",
+                                         "options":  {
+
+                                                     },
+                                         "httpMethod":  "POST"
+                                     },
+                      "typeVersion":  2
+                  },
+                  {
+                      "id":  "tg-exp",
+                      "name":  "Telegram Admin",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "position":  [
+                                       400,
+                                       300
+                                   ],
+                      "parameters":  {
+                                         "headerParameters":  {
+                                                                  "parameters":  [
+                                                                                     {
+                                                                                         "value":  "application/json",
+                                                                                         "name":  "Content-Type"
+                                                                                     }
+                                                                                 ]
+                                                              },
+                                         "method":  "POST",
+                                         "specifyBody":  "json",
+                                         "jsonBody":  "={\"chat_id\":\"{{$json.telegramChatId || \u0027-1001234567890\u0027}}\",\"text\":\"Nueva Solicitud de Exposicion de {{$json.affiliateName}}: {{$json.publicationText}}\"}",
+                                         "url":  "https://api.telegram.org/bot8958672762:AAEZN_b7Y5ZL-KQbenB6gmR3qxfnV0MUK8E/sendMessage",
+                                         "sendHeaders":  true,
+                                         "options":  {
+
+                                                     },
+                                         "sendBody":  true
+                                     },
+                      "typeVersion":  4.2
+                  },
+                  {
+                      "id":  "resp-exp",
+                      "name":  "Responder",
+                      "type":  "n8n-nodes-base.respondToWebhook",
+                      "position":  [
+                                       700,
+                                       300
+                                   ],
+                      "parameters":  {
+                                         "responseBody":  "={\"ok\":true}",
+                                         "respondWith":  "json",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "typeVersion":  1.1
+                  }
+              ]
+}

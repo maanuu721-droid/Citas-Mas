@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Affiliate, Appointment, SubscriptionPlanType, ServiceItem } from '../types.ts';
 import { DataService } from '../services/dataService.ts';
 import { StripeService, StripePayoutItem } from '../services/stripeService.ts';
@@ -58,10 +58,15 @@ import {
   Sliders,
   Settings,
   BarChart3,
-  Share2
+  Share2,
+  Users,
+  Lock
 } from 'lucide-react';
 import { validateAndDetectClabe, calculatePayoutBreakdown, MEXICAN_BANKS } from '../utils/mexicanBankUtils.ts';
 import { MarketingToolsView } from './MarketingToolsView.tsx';
+import { CRMView } from './CRMView.tsx';
+import { ShareQuickPanel } from './ShareQuickPanel.tsx';
+import { usePlanGuard } from '../hooks/usePlanGuard.ts';
 
 interface Props {
   currentAffiliate: Affiliate;
@@ -79,8 +84,9 @@ export const AffiliateDashboardView: React.FC<Props> = ({
   onOpenOnboardingTour
 }) => {
   const [activeTab, setActiveTab] = useState<
-    'appointments' | 'calendar' | 'analytics' | 'landing_customizer' | 'schedule' | 'services' | 'billing' | 'twilio_logs' | 'marketing'
+    'appointments' | 'calendar' | 'analytics' | 'landing_customizer' | 'schedule' | 'services' | 'billing' | 'twilio_logs' | 'marketing' | 'crm' | 'share_qr'
   >('calendar');
+  const guard = usePlanGuard(currentAffiliate);
   const [marketingInitialSubTab, setMarketingInitialSubTab] = useState<
     'audience' | 'campaign_2d' | 'campaign_pro' | 'campaign_premium' | 'n8n_retention' | 'analytics_bi'
   >('audience');
@@ -935,7 +941,7 @@ export const AffiliateDashboardView: React.FC<Props> = ({
         </button>
 
         <button
-          id="dashboard-tab-marketing-btn"
+          id="dashboard-tab-marketing-btn-2"
           onClick={() => setActiveTab('marketing')}
           className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 whitespace-nowrap shadow-xs ${
             activeTab === 'marketing'
@@ -944,10 +950,34 @@ export const AffiliateDashboardView: React.FC<Props> = ({
           }`}
         >
           <Sparkles className="w-4 h-4 text-emerald-500 fill-emerald-500" />
-          <span>Marketing & IA (5 Niveles)</span>
-          <span className="ml-1 bg-emerald-600 text-white text-[9px] px-1.5 py-0.2 rounded-full font-black animate-pulse">
-            NUEVO
-          </span>
+          <span>Marketing & IA (4 Etapas)</span>
+        </button>
+
+        <button
+          id="dashboard-tab-crm-btn"
+          onClick={() => setActiveTab('crm')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 whitespace-nowrap ${
+            activeTab === 'crm'
+              ? 'bg-slate-900 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          }`}
+        >
+          <Users className="w-4 h-4 text-emerald-400" />
+          <span>CRM & WhatsApp</span>
+          {!guard.canAccessCRM && <Lock className="w-3 h-3 text-amber-500" />}
+        </button>
+
+        <button
+          id="dashboard-tab-share-qr-btn"
+          onClick={() => setActiveTab('share_qr')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 whitespace-nowrap ${
+            activeTab === 'share_qr'
+              ? 'bg-slate-900 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          }`}
+        >
+          <Share2 className="w-4 h-4 text-blue-400" />
+          <span>Link & QR Agenda</span>
         </button>
 
         <button
@@ -2430,7 +2460,7 @@ export const AffiliateDashboardView: React.FC<Props> = ({
         </div>
       )}
 
-      {/* TAB 7: MARKETING TOOLS (AI 5 LEVELS) */}
+      {/* TAB 7: MARKETING TOOLS (4 ETAPAS) */}
       {activeTab === 'marketing' && (
         <div className="space-y-6">
           <MarketingToolsView
@@ -2441,9 +2471,58 @@ export const AffiliateDashboardView: React.FC<Props> = ({
               onUpdateAffiliate(updated);
             }}
             onNavigateToLanding={() => onPreviewLanding(formData)}
+            onUpgradePlan={() => handleOpenPlanCheckout('monthly')}
             onClose={() => setActiveTab('calendar')}
           />
         </div>
+      )}
+
+      {/* TAB 8: CRM & SEGUIMIENTO WHATSAPP */}
+      {activeTab === 'crm' && (
+        !guard.canAccessCRM ? (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 text-center space-y-3">
+            <Lock className="w-10 h-10 text-amber-500 mx-auto" />
+            <h3 className="text-lg font-bold text-gray-900">CRM disponible en el Plan Mensual ($1,200 MXN/mes)</h3>
+            <p className="text-xs text-gray-600 max-w-md mx-auto">
+              Accede al historial global e individual de clientes, límites anti-invasivos, gráficas de retención y recordatorios a tu WhatsApp.
+            </p>
+            <button
+              onClick={() => handleOpenPlanCheckout('monthly')}
+              className="px-5 py-2.5 bg-gray-900 text-white rounded-xl text-xs font-bold hover:bg-black"
+            >
+              Actualizar al Plan Mensual
+            </button>
+          </div>
+        ) : (
+          <CRMView
+            affiliate={formData}
+            onUpdateAffiliate={(updated) => {
+              setFormData(updated);
+              onUpdateAffiliate(updated);
+            }}
+          />
+        )
+      )}
+
+      {/* TAB 9: LINK Y QR DE AGENDA RÁPIDA */}
+      {activeTab === 'share_qr' && (
+        !guard.isPaid ? (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 text-center space-y-3">
+            <Lock className="w-10 h-10 text-amber-500 mx-auto" />
+            <h3 className="text-lg font-bold text-gray-900">Link y QR de Agenda Pública disponible en Plan Mensual</h3>
+            <button
+              onClick={() => handleOpenPlanCheckout('monthly')}
+              className="px-5 py-2.5 bg-gray-900 text-white rounded-xl text-xs font-bold hover:bg-black"
+            >
+              Actualizar al Plan Mensual
+            </button>
+          </div>
+        ) : (
+          <ShareQuickPanel
+            affiliate={formData}
+            onPreviewLanding={onPreviewLanding}
+          />
+        )
       )}
 
       {/* Payout Withdrawal Modal */}

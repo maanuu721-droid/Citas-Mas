@@ -1,4 +1,6 @@
-export type SubscriptionPlanType = 'basico' | 'pro' | 'equipo' | 'comision' | 'prueba';
+export type SubscriptionPlanType = 'free' | 'monthly' | 'basico' | 'pro' | 'equipo' | 'comision' | 'prueba';
+
+export type VideoType = 'spot' | 'cinematic';
 
 export interface ServiceItem {
   id: string;
@@ -53,6 +55,146 @@ export interface AffiliateAddressDetails {
   googleMapsUrl?: string;
 }
 
+// ========================================================
+// IMAGE PACKAGES 9:16 — IA MARKETING (ETAPA 2)
+// ========================================================
+
+export interface ImagePackage916 {
+  id: string;
+  affiliateId: string;
+  buyerPersonaId: string;
+  buyerPersonaName: string;
+  serviceId?: string;
+  serviceName?: string;
+  isGlobalAd?: boolean;
+  images: {
+    publicitaria?: string;
+    educativa?: string;
+    promocion?: string;
+  };
+  copyTexts?: {
+    publicitaria?: string;
+    educativa?: string;
+    promocion?: string;
+  };
+  status: 'processing' | 'ready' | 'error';
+  errorMessage?: string;
+  createdAt: string;
+  readyAt?: string;
+  addedToLanding: boolean;
+  exposureRequested?: boolean;
+  exposureRequestedAt?: string;
+  publicationText?: string;
+  n8nExecutionId?: string;
+}
+
+// ========================================================
+// MONTHLY VIDEO RECORDS — IA MARKETING (ETAPA 3)
+// ========================================================
+
+export interface MonthlyVideoRecord {
+  id: string;
+  affiliateId: string;
+  month: string; // "2026-11"
+  videoType: 'spot' | 'cinematic';
+  imagePackageId: string;
+  videoUrl?: string;
+  audioUrl?: string;
+  thumbnailUrl?: string;
+  publicationText?: string;
+  status: 'processing' | 'ready' | 'error';
+  errorMessage?: string;
+  createdAt: string;
+  readyAt?: string;
+  addedToLanding: boolean;
+  exposureRequested?: boolean;
+  exposureRequestedAt?: string;
+  n8nExecutionId?: string;
+}
+
+// ========================================================
+// CRM — CLIENTES Y RECORDATORIOS WHATSAPP
+// ========================================================
+
+export interface CRMClient {
+  id: string;
+  affiliateId: string;
+  clientName: string;
+  clientPhone: string;
+  clientEmail?: string;
+  serviceHistory: {
+    serviceId: string;
+    serviceName: string;
+    date: string;
+    price?: number;
+    notes?: string;
+    appointmentId?: string;
+  }[];
+  totalAppointments: number;
+  lastVisit?: string;
+  followupType: 'standard' | 'vip' | 'minimal';
+  maxRemindersPerMonth: number;
+  remindersSentThisMonth: number;
+  tags?: string[];
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CRMReminder {
+  id: string;
+  affiliateId: string;
+  clientId: string;
+  clientName: string;
+  clientPhone: string;
+  message: string;
+  scheduledAt: string;
+  sentAt?: string;
+  status: 'pending' | 'sent' | 'failed' | 'cancelled';
+  whatsappMessageId?: string;
+  createdAt: string;
+}
+
+// ========================================================
+// EXPOSURE REQUESTS — SOLICITAR EXPOSICIÓN EN REDES
+// ========================================================
+
+export interface ExposureRequest {
+  id: string;
+  affiliateId: string;
+  affiliateName: string;
+  affiliatePhone?: string;
+  assetType: 'image_package' | 'video';
+  assetId: string;
+  assetUrl: string;
+  assetThumbnailUrl?: string;
+  publicationText: string;
+  status: 'pending_review' | 'approved' | 'rejected' | 'published';
+  adminNotes?: string;
+  requestedAt: string;
+  reviewedAt?: string;
+}
+
+// ========================================================
+// ADMIN MARKETING ASSETS
+// ========================================================
+
+export interface AdminMarketingAsset {
+  id: string;
+  requestedBy: string;
+  type: 'image' | 'video';
+  userPrompt: string;
+  refinedPrompt?: string;
+  kieModel: KieAiModel;
+  mediaUrl?: string;
+  thumbnailUrl?: string;
+  status: 'processing' | 'ready' | 'error';
+  errorMessage?: string;
+  createdAt: string;
+  readyAt?: string;
+  n8nExecutionId?: string;
+}
+
 export interface Affiliate {
   id: string;
   name: string;
@@ -78,7 +220,7 @@ export interface Affiliate {
   rating: number;
   reviewCount: number;
   completedAppointments: number;
-  plan: SubscriptionPlanType;
+  plan: SubscriptionPlanType; // 'free' | 'monthly'
   isTurbo: boolean;
   turboLevel?: 1 | 2 | 3; // 1 = +$200 MXN, 2 = +$700 MXN, 3 = +$1,500 MXN
   turboLevelExtraCost?: number; // 200 | 700 | 1500
@@ -125,6 +267,13 @@ export interface Affiliate {
   totalPayoutsReceivedMxn?: number;
   referredByCode?: string; // Código de promotor que refirió a este afiliado
   updatedAt?: string;
+  // New IA Marketing fields
+  imagePackages?: ImagePackage916[];
+  monthlyVideos?: MonthlyVideoRecord[];
+  etapa1Completed?: boolean;
+  etapa2Completed?: boolean;
+  shareLink?: string; // URL pública del afiliado
+  shareSlug?: string; // slug único para la URL
 }
 
 export interface BuyerPersona {
@@ -137,6 +286,7 @@ export interface BuyerPersona {
   desires: string[];
   buyingTriggers: string[];
   summaryHook: string;
+  isSelected?: boolean;
 }
 
 export interface MarketingCampaignItem {
@@ -410,8 +560,8 @@ export interface ReferredAffiliateItem {
   affiliatePhone: string;
   categoryLabel?: string;
   registeredAt: string;
-  plan: SubscriptionPlanType; // 'basico' | 'pro' | 'equipo' | 'comision'
-  monthlyPriceMxn: number; // e.g. 599 o 869
+  plan: SubscriptionPlanType; // 'free' | 'monthly'
+  monthlyPriceMxn: number; // e.g. 0 o 1200
   monthlyCommissionMxn: number; // 40% del pago mensual
   isSubscriptionActive: boolean; // Mientras siga pagando la suscripción
   subscriptionStatus: 'active' | 'past_due' | 'cancelled';
@@ -536,7 +686,7 @@ export interface MarketingAsset {
 }
 
 // ========================================================
-// PROMOTION ORDERS — EXPOSURE PACKAGES ($300, $600, $1500)
+// EXPOSURE PACKAGE LEVEL (kept for backward compatibility)
 // ========================================================
 
 export type ExposurePackageLevel = 1 | 2 | 3;
@@ -547,8 +697,8 @@ export interface PromotionOrder {
   affiliateName: string;
   affiliatePhone: string;
   packageLevel: ExposurePackageLevel;
-  packageName: string;        // "Impulso Redes", "Expansión Redes", "Dominación Total"
-  priceMxn: number;           // 300 | 600 | 1500
+  packageName: string;
+  priceMxn: number;
   currency: 'mxn';
   stripeSessionId?: string;
   stripePaymentIntentId?: string;
@@ -556,7 +706,6 @@ export interface PromotionOrder {
   status: 'pending_payment' | 'paid' | 'active' | 'completed' | 'refunded';
   activatedAt?: string;
   expiresAt?: string;
-  // Analytics
   estimatedReach?: number;
   totalViews?: number;
   totalClicks?: number;
