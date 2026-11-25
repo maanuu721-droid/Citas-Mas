@@ -569,34 +569,11 @@ export default function App() {
                   className={`px-3.5 py-1.5 rounded-xl transition-all flex items-center space-x-2 border cursor-pointer ${
                     activeView === 'promo'
                       ? 'bg-emerald-50 text-emerald-950 border-emerald-300 font-black shadow-xs'
-                      : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200/90 hover:border-amber-400 shadow-2xs'
-                  }`}
-                  title="Conoce los planes y el Plan de Prueba por $10 MXN mensuales"
-                >
-                  <div className="flex items-center space-x-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
-                    <span className="font-bold text-xs">Para Profesionales (Promo)</span>
-                  </div>
-                  <span className="bg-gradient-to-r from-amber-400 via-amber-300 to-emerald-400 text-slate-950 font-black text-[10px] px-2 py-0.5 rounded-full shadow-xs uppercase tracking-wider flex items-center space-x-1 border border-amber-300/80">
-                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-                    <span>Prueba $10 MXN</span>
-                  </span>
-                </button>
-
-                <button
-                  id="nav-guest-promoter-btn"
-                  onClick={() => {
-                    setActiveView('promoter');
-                    setSelectedAffiliate(null);
-                  }}
-                  className={`px-3.5 py-2 rounded-xl transition-all flex items-center space-x-1.5 ${
-                    activeView === 'promoter'
-                      ? 'bg-amber-100 text-amber-900 font-black'
-                      : 'text-amber-800 hover:text-amber-950 hover:bg-amber-50 font-bold'
+                      : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200/90 hover:border-emerald-400 shadow-2xs'
                   }`}
                 >
-                  <DollarSign className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Embajadores (Gana 40%)</span>
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600 fill-emerald-500" />
+                  <span className="font-bold text-xs">Para Profesionales</span>
                 </button>
               </>
             )}
@@ -692,14 +669,7 @@ export default function App() {
                   <span>Ingresar como Afiliado</span>
                 </button>
 
-                <button
-                  id="nav-login-promoter-btn"
-                  onClick={() => handleOpenLogin('promoter')}
-                  className="px-3 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-1.5 shadow-2xs"
-                >
-                  <DollarSign className="w-3.5 h-3.5 text-slate-900" />
-                  <span>Embajador 40%</span>
-                </button>
+
               </div>
             )}
           </div>
@@ -791,16 +761,6 @@ export default function App() {
                 >
                   <Building2 className="w-4 h-4 text-emerald-400 mb-1" />
                   <span>Afiliado</span>
-                </button>
-                <button
-                  onClick={() => {
-                    handleOpenLogin('promoter');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="py-2.5 px-2 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl text-[11px] font-black text-center flex flex-col items-center justify-center"
-                >
-                  <DollarSign className="w-4 h-4 text-slate-900 mb-1" />
-                  <span>Embajador</span>
                 </button>
               </div>
             )}
@@ -955,31 +915,14 @@ export default function App() {
                     setSelectedAffiliate(null);
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`w-full text-left py-2.5 px-3 rounded-xl flex items-center justify-between border cursor-pointer transition-all ${
+                  className={`w-full text-left py-2.5 px-3 rounded-xl flex items-center gap-2 border cursor-pointer transition-all ${
                     activeView === 'promo'
                       ? 'bg-emerald-50 border-emerald-300 text-emerald-950 font-black'
                       : 'border-slate-100 hover:bg-slate-50 text-slate-800'
                   }`}
                 >
-                  <div className="flex items-center space-x-2">
-                    <Sparkles className="w-4 h-4 text-amber-500 fill-amber-400" />
-                    <span className="font-bold text-xs sm:text-sm">Para Profesionales (Promo & Planes)</span>
-                  </div>
-                  <span className="bg-gradient-to-r from-amber-400 via-amber-300 to-emerald-400 text-slate-950 font-black text-[10px] px-2 py-0.5 rounded-full shadow-xs border border-amber-300/80 shrink-0">
-                    Prueba $10 MXN
-                  </span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setActiveView('promoter');
-                    setSelectedAffiliate(null);
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="w-full text-left py-2 px-3 rounded-lg text-amber-900 bg-amber-50 hover:bg-amber-100 flex items-center space-x-2 font-bold"
-                >
-                  <DollarSign className="w-4 h-4 text-amber-600" />
-                  <span>Programa Embajadores (Gana 40%)</span>
+                  <Sparkles className="w-4 h-4 text-emerald-600 fill-emerald-500" />
+                  <span className="font-bold text-xs sm:text-sm">Para Profesionales</span>
                 </button>
               </>
             )}
