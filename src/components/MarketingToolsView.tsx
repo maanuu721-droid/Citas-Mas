@@ -150,7 +150,7 @@ export const MarketingToolsView: React.FC<Props> = ({
       confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
       showToast('success', `✅ Se crearon ${generated.length} Clientes Ideales. ¡Ya puedes pasar a la Etapa 2!`);
     } catch (err) {
-      showToast('error', 'No se pudo conectar con n8n para generar personas. Puedes agregar un perfil manualmente.');
+      showToast('error', 'No se pudo conectar con el servicio de IA. Puedes agregar un perfil manualmente.');
     } finally {
       setIsGeneratingE1(false);
     }
@@ -248,7 +248,7 @@ export const MarketingToolsView: React.FC<Props> = ({
       confetti({ particleCount: 60, spread: 70, origin: { y: 0.7 } });
       showToast('success', '✅ Paquete de 3 imágenes 9:16 generado y guardado en tus recursos.');
     } catch (err) {
-      showToast('error', 'Error al conectar con n8n para generar el paquete de imágenes.');
+      showToast('error', 'Error al generar el paquete de imágenes. Intenta de nuevo.');
     } finally {
       setIsGeneratingE2(false);
     }
@@ -309,7 +309,7 @@ export const MarketingToolsView: React.FC<Props> = ({
       confetti({ particleCount: 80, spread: 80, origin: { y: 0.6 } });
       showToast('success', `🎬 ¡Video ${videoType === 'spot' ? 'Spot' : 'Cinematográfico'} generado y guardado!`);
     } catch (err) {
-      showToast('error', 'Error al generar el video en n8n.');
+      showToast('error', 'Error al generar el video. Intenta de nuevo.');
     } finally {
       setIsGeneratingE3(false);
       setIsGeneratingE4(false);
@@ -596,7 +596,7 @@ export const MarketingToolsView: React.FC<Props> = ({
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900">Etapa 1: Clientes Ideales + Productos/Servicios</h3>
-                  <p className="text-xs text-gray-500">Genera buyer personas automáticamente con DeepSeek o agrégalos manualmente.</p>
+                  <p className="text-xs text-gray-500">Define tus Clientes Ideales y selecciona los productos/servicios o Anuncio Global.</p>
                 </div>
                 <button
                   onClick={handleGeneratePersonasAI}
