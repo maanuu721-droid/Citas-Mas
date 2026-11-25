@@ -232,7 +232,7 @@ export const AdminDashboardView: React.FC<Props> = ({
         ...prev,
         {
           role: 'ai',
-          text: data.message || `✅ ${adminAIMediaType === 'video' ? 'Video' : 'Imagen'} generado con Kie.ai (${adminAIKieModel}).`,
+          text: data.message || `✅ ${adminAIMediaType === 'video' ? 'Video' : 'Imagen'} generado exitosamente.`,
           mediaUrl,
           type: adminAIMediaType
         }
@@ -255,7 +255,7 @@ export const AdminDashboardView: React.FC<Props> = ({
     } catch {
       setAdminAIMessages(prev => [
         ...prev,
-        { role: 'ai', text: '❌ Error al conectar con n8n/Kie.ai. Verifica que el workflow admin-marketing-ia esté activo.' }
+        { role: 'ai', text: '❌ Error al generar el contenido. Verifica que el servicio esté activo e intenta de nuevo.' }
       ]);
     } finally {
       setIsGeneratingAdminAsset(false);
@@ -795,7 +795,7 @@ export const AdminDashboardView: React.FC<Props> = ({
             }`}
           >
             <Sparkles className="w-4 h-4" />
-            <span>Marketing IA Admin (Kie.ai)</span>
+            <span>Marketing IA Admin</span>
           </button>
 
           <button
@@ -1621,7 +1621,7 @@ export const AdminDashboardView: React.FC<Props> = ({
         )}
 
         {/* ====================================================================
-            TAB: HERRAMIENTAS DE MARKETING PROPIAS DEL ADMIN (AGENTE IA + KIE.AI)
+            TAB: HERRAMIENTAS DE MARKETING IA DEL ADMIN
             ==================================================================== */}
         {activeTab === 'admin_marketing_ia' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1633,7 +1633,7 @@ export const AdminDashboardView: React.FC<Props> = ({
                   </div>
                   <div>
                     <h2 className="text-base font-black text-white">Agente de Marketing IA — CitasMás</h2>
-                    <p className="text-xs text-slate-400">Solicita imágenes o videos personalizados usando las APIs de Kie.ai</p>
+                    <p className="text-xs text-slate-400">Solicita imágenes o videos personalizados con inteligencia artificial</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1654,10 +1654,10 @@ export const AdminDashboardView: React.FC<Props> = ({
                     onChange={e => setAdminAIKieModel(e.target.value as KieAiModel)}
                     className="bg-slate-950 border border-slate-700 text-purple-300 text-xs rounded-xl px-3 py-2"
                   >
-                    <option value="grok-image-2">Kie: grok-image-2</option>
-                    <option value="grok-image-to-image">Kie: grok-image-to-image</option>
-                    <option value="grok-video-1.5">Kie: grok-video-1.5</option>
-                    <option value="grok-image-to-video">Kie: grok-image-to-video</option>
+                    <option value="grok-image-2">Imagen estándar</option>
+                    <option value="grok-image-to-image">Imagen a imagen</option>
+                    <option value="grok-video-1.5">Video estándar</option>
+                    <option value="grok-image-to-video">Imagen a video</option>
                   </select>
                 </div>
               </div>
@@ -1667,7 +1667,7 @@ export const AdminDashboardView: React.FC<Props> = ({
                   <div className="text-center py-12 text-slate-500">
                     <Sparkles className="w-10 h-10 mx-auto mb-2 opacity-30" />
                     <p className="text-sm">Escribe qué imagen o video personalizado necesitas para CitasMás.</p>
-                    <p className="text-xs mt-1 text-slate-600">El agente IA refinará tu solicitud y llamará a la API de Kie.ai seleccionada.</p>
+                    <p className="text-xs mt-1 text-slate-600">El agente IA refinará tu solicitud y generará el contenido seleccionado.</p>
                   </div>
                 )}
                 {adminAIMessages.map((msg, i) => (
@@ -1701,7 +1701,7 @@ export const AdminDashboardView: React.FC<Props> = ({
                   <div className="flex justify-start">
                     <div className="bg-slate-900 border border-slate-700 rounded-2xl px-4 py-3 flex items-center gap-2 text-xs text-slate-300">
                       <RefreshCw className="w-4 h-4 animate-spin text-purple-400" />
-                      <span>Generando con Agente IA + Kie.ai ({adminAIKieModel})...</span>
+                      <span>Generando contenido con IA ({adminAIKieModel})...</span>
                     </div>
                   </div>
                 )}
@@ -1811,7 +1811,7 @@ export const AdminDashboardView: React.FC<Props> = ({
         )}
 
         {/* ====================================================================
-            TAB 5: N8N WEBHOOKS CONFIGURATION
+            TAB 5: WEBHOOKS CONFIGURATION
             ==================================================================== */}
         {activeTab === 'settings' && (
           <div className="space-y-6">
