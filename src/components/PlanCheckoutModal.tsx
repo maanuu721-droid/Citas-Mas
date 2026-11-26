@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Affiliate, SubscriptionPlanType, ServiceItem } from '../types.ts';
 import { DataService } from '../services/dataService.ts';
 import { StripeService } from '../services/stripeService.ts';
@@ -62,10 +62,10 @@ const PLANS_CONFIG: PlanDefinition[] = [
   {
     id: 'monthly',
     name: 'Plan Mensual Integral',
-    monthlyPrice: 1200,
-    annualMonthlyPrice: 1200,
+    monthlyPrice: 1274,
+    annualMonthlyPrice: 1274,
     description: 'Acceso completo: marketing por etapas con IA, CRM con WhatsApp, link/QR de agenda y solicitud de exposición en redes.',
-    badge: 'Plan Completo • $1,200 MXN/mes (IVA incluido)',
+    badge: 'Plan Completo • $1,274 MXN/mes (IVA incluido)',
     features: [
       '🤖 Herramientas de Marketing por Etapas con IA (DeepSeek + Kie.ai)',
       '🖼️ Paquetes de 3 imágenes 9:16 (publicitaria, educativa, promoción)',
@@ -141,7 +141,7 @@ export const PlanCheckoutModal: React.FC<PlanCheckoutModalProps> = ({
     if (isServiceMode && service) {
       return service.price || 0;
     }
-    return 1200;
+    return 1274;
   };
 
   const totalAmount = calculateTotal();
@@ -257,8 +257,8 @@ export const PlanCheckoutModal: React.FC<PlanCheckoutModalProps> = ({
         const receipt = {
           folio: `SUB-${Math.floor(100000 + Math.random() * 900000)}`,
           authCode: `AUTH-STP-${Date.now().toString().slice(-6)}`,
-          planName: `${currentPlanDef.name} ($1,200 MXN/mes - IVA incluido)`,
-          amountPaid: 1200,
+          planName: `${currentPlanDef.name} ($1,274 MXN/mes - IVA incluido)`,
+          amountPaid: 1274,
           cycle: 'Mensual Recurrente (IVA incluido)',
           date: new Date().toLocaleDateString('es-MX', {
             year: 'numeric',
@@ -401,7 +401,7 @@ export const PlanCheckoutModal: React.FC<PlanCheckoutModalProps> = ({
                     </div>
                     <div className="sm:text-right shrink-0">
                       <div className="text-3xl font-black text-emerald-600">
-                        $1,200 <span className="text-sm font-bold text-slate-600">MXN/mes</span>
+                        $1,274 <span className="text-sm font-bold text-slate-600">MXN/mes</span>
                       </div>
                       <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2.5 py-0.5 rounded-md inline-block mt-0.5">
                         IVA ya incluido
@@ -464,7 +464,7 @@ export const PlanCheckoutModal: React.FC<PlanCheckoutModalProps> = ({
 
                     <div className="text-left sm:text-right">
                       <span className="text-2xl font-black text-emerald-400">
-                        $1,200 MXN
+                        $1,274 MXN
                       </span>
                       <span className="text-[10px] text-emerald-300 block font-semibold">
                         IVA ya incluido • Facturación mensual recurrente
