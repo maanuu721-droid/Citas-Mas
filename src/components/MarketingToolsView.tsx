@@ -430,7 +430,7 @@ export const MarketingToolsView: React.FC<Props> = ({
             <p className="text-xs text-gray-500">
               Flujo secuencial obligatorio • Plan actual:{' '}
               <span className="font-bold uppercase text-indigo-600">
-                {guard.isPaid ? 'Plan Mensual ($1,200/mes)' : 'Plan Gratuito'}
+                {guard.isPaid ? 'Plan Mensual ($1,274/mes)' : 'Plan Gratuito'}
               </span>
             </p>
           </div>
@@ -477,7 +477,7 @@ export const MarketingToolsView: React.FC<Props> = ({
               <Lock className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-gray-900">Las herramientas de Marketing están disponibles en el Plan Mensual ($1,200 MXN/mes)</h3>
+              <h3 className="font-bold text-gray-900">Las herramientas de Marketing están disponibles en el Plan Mensual ($1,274 MXN/mes)</h3>
               <p className="text-xs text-gray-600">
                 En el Plan Gratuito solo recibes notificaciones de citas por Gmail. Actualiza para desbloquear IA, paquetes 9:16, videos y exposición.
               </p>
