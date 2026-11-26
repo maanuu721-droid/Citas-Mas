@@ -339,9 +339,15 @@ export const BookingModal: React.FC<Props> = ({
     setTimeout(() => setStripeNotice(null), 4000);
   };
 
+  const isFreePlan = affiliate.plan === 'free' || affiliate.plan === 'basico' || affiliate.plan === 'prueba';
+
   const handleStripeCheckoutRedirect = async () => {
     if (!clientName || !clientPhone) {
       alert('Por favor completa tu nombre y número de WhatsApp');
+      return;
+    }
+    if (isFreePlan && (!clientEmail.trim() || !clientEmail.includes('@'))) {
+      alert('Por favor ingresa tu correo electrónico para enviarte la confirmación y recordatorios de tu cita');
       return;
     }
     if (!selectedDate || !selectedTime) {
@@ -380,6 +386,10 @@ export const BookingModal: React.FC<Props> = ({
     e.preventDefault();
     if (!clientName || !clientPhone) {
       alert('Por favor completa tu nombre y número de WhatsApp');
+      return;
+    }
+    if (isFreePlan && (!clientEmail.trim() || !clientEmail.includes('@'))) {
+      alert('Por favor ingresa tu correo electrónico para enviarte la confirmación y recordatorios de tu cita');
       return;
     }
 
@@ -471,8 +481,6 @@ export const BookingModal: React.FC<Props> = ({
       updatedAt: new Date().toISOString()
     };
 
-    const isFreePlan = affiliate.plan === 'free' || affiliate.plan === 'basico' || affiliate.plan === 'prueba';
-
     if (isFreePlan) {
       // Free Plan: notifications exclusively via Gmail (n8n)
       fetch('https://n8n.bahiago.tech/webhook/plan-gratis-notificacion', {
@@ -482,6 +490,7 @@ export const BookingModal: React.FC<Props> = ({
           affiliateEmail: affiliate.email || affiliate.ownerEmail || '',
           affiliateBusinessName: affiliate.businessName,
           clientName: newAppointment.clientName,
+          clientEmail: newAppointment.clientEmail,
           serviceName: newAppointment.serviceName,
           date: newAppointment.date,
           time: newAppointment.time,
@@ -834,13 +843,16 @@ export const BookingModal: React.FC<Props> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5">
-                  Correo Electrónico (para comprobante fiscal/recibo)
+                  {isFreePlan
+                    ? 'Correo Electrónico * (confirmación y recordatorios 24h/2h)'
+                    : 'Correo Electrónico (para comprobante fiscal/recibo)'}
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-600 absolute left-3.5 top-3" />
                   <input
                     id="booking-client-email-input"
                     type="email"
+                    required={isFreePlan}
                     placeholder="tuemail@ejemplo.com"
                     value={clientEmail}
                     onChange={(e) => setClientEmail(e.target.value)}
