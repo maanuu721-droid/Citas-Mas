@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Affiliate, Appointment, SubscriptionPlanType, ServiceItem } from '../types.ts';
 import { DataService } from '../services/dataService.ts';
 import { StripeService, StripePayoutItem } from '../services/stripeService.ts';
@@ -2255,7 +2255,7 @@ export const AffiliateDashboardView: React.FC<Props> = ({
 
               <div className="inline-flex items-center space-x-2 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-800">
                 <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                <span>$1,200 MXN / mes (IVA incluido)</span>
+                <span>$1,274 MXN / mes (IVA incluido)</span>
               </div>
             </div>
 
@@ -2281,7 +2281,7 @@ export const AffiliateDashboardView: React.FC<Props> = ({
 
                 <div className="text-left md:text-right shrink-0 bg-slate-900/90 border border-slate-800 p-5 rounded-2xl">
                   <div className="text-3xl sm:text-4xl font-black text-emerald-400">
-                    $1,200
+                    $1,274
                   </div>
                   <div className="text-xs font-bold text-slate-300 mt-0.5">
                     MXN / mes
@@ -2332,12 +2332,12 @@ export const AffiliateDashboardView: React.FC<Props> = ({
                     className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs px-6 py-3 rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center space-x-2 cursor-pointer"
                   >
                     <Sparkles className="w-4 h-4" />
-                    <span>Pagar Membresía Mensual ($1,200 MXN)</span>
+                    <span>Pagar Membresía Mensual ($1,274 MXN)</span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => handleSubscribeWithStripe('pro', 1200, 'Plan Integral CitasMás')}
+                    onClick={() => handleSubscribeWithStripe('pro', 1274, 'Plan Integral CitasMás')}
                     disabled={isStartingStripeSub}
                     className="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-5 py-3 rounded-xl border border-slate-700 transition-all flex items-center justify-center space-x-2 cursor-pointer"
                   >
@@ -2482,7 +2482,7 @@ export const AffiliateDashboardView: React.FC<Props> = ({
         !guard.canAccessCRM ? (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 text-center space-y-3">
             <Lock className="w-10 h-10 text-amber-500 mx-auto" />
-            <h3 className="text-lg font-bold text-gray-900">CRM disponible en el Plan Mensual ($1,200 MXN/mes)</h3>
+            <h3 className="text-lg font-bold text-gray-900">CRM disponible en el Plan Mensual ($1,274 MXN/mes)</h3>
             <p className="text-xs text-gray-600 max-w-md mx-auto">
               Accede al historial global e individual de clientes, límites anti-invasivos, gráficas de retención y recordatorios a tu WhatsApp.
             </p>
