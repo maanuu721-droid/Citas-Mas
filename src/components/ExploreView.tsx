@@ -358,7 +358,7 @@ export const ExploreView: React.FC<Props> = ({
         )}
       </div>
 
-      {/* ── BANNER: Plan Único $1,200 MXN para profesionales ── */}
+      {/* ── BANNER: Plan Único $1,274 MXN para profesionales ── */}
       {onOpenPromo && (
         <button
           type="button"
@@ -376,7 +376,7 @@ export const ExploreView: React.FC<Props> = ({
                   ¿Eres profesional o clínica? Únete con el Plan Integral por
                 </span>
                 <span className="bg-emerald-400 text-slate-950 font-black text-lg px-3 py-0.5 rounded-xl shadow-sm">
-                  $1,200 MXN/mes
+                  $1,274 MXN/mes
                 </span>
                 <span className="text-emerald-200 text-xs font-bold">
                   (IVA incluido)
