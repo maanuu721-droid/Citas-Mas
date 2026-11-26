@@ -85,7 +85,7 @@ export const PromoBusinessView: React.FC<Props> = ({
           >
             <span className="bg-emerald-500 text-slate-950 text-xs font-black px-2.5 py-1 rounded-xl">MEMBRESÍA INTEGRAL</span>
             <span className="text-white font-bold text-sm">Plan Único Todo Incluido por</span>
-            <span className="text-emerald-400 font-black text-xl">$1,200 MXN/mes</span>
+            <span className="text-emerald-400 font-black text-xl">$1,274 MXN/mes</span>
             <span className="text-emerald-300 text-xs font-semibold">(IVA incluido)</span>
             <ArrowRight className="w-4 h-4 text-emerald-400" />
           </div>
@@ -309,7 +309,7 @@ export const PromoBusinessView: React.FC<Props> = ({
         </div>
       </section>
 
-      {/* Pricing Section — Plan Único $1,200 MXN (IVA Incluido) */}
+      {/* Pricing Section — Plan Único $1,274 MXN (IVA Incluido) */}
       <section className="max-w-4xl mx-auto px-4 sm:px-6">
         <div className="text-center max-w-2xl mx-auto space-y-2 mb-10">
           <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
@@ -345,7 +345,7 @@ export const PromoBusinessView: React.FC<Props> = ({
 
             <div className="text-left md:text-right shrink-0 bg-slate-900/80 border border-slate-800 p-6 rounded-2xl">
               <div className="text-4xl sm:text-5xl font-black text-emerald-400">
-                $1,200
+                $1,274
               </div>
               <div className="text-xs font-bold text-slate-300 mt-1">
                 Pesos Mexicanos (MXN) / mes
@@ -403,7 +403,7 @@ export const PromoBusinessView: React.FC<Props> = ({
               className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm px-8 py-4 rounded-2xl shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center space-x-2 cursor-pointer"
             >
               <Sparkles className="w-4 h-4" />
-              <span>Contratar Plan CitasMás ($1,200 MXN / mes)</span>
+              <span>Contratar Plan CitasMás ($1,274 MXN / mes)</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
