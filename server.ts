@@ -617,7 +617,7 @@ Genera un JSON estricto con:
     try {
       const { planId, planName, priceMxn, affiliateId, affiliateEmail, originUrl } = req.body;
       const baseUrl = originUrl || req.headers.origin || 'http://localhost:3000';
-      const finalPriceMxn = Number(priceMxn) > 0 ? Number(priceMxn) : 1200;
+      const finalPriceMxn = Number(priceMxn) > 0 ? Number(priceMxn) : 1274;
 
       const session = await stripeSubscriptions.checkout.sessions.create({
         payment_method_types: ['card'],
@@ -627,7 +627,7 @@ Genera un JSON estricto con:
             price_data: {
               currency: 'mxn',
               product_data: {
-                name: `Citas Más MX: Membresía ${planName || 'Plan Integral'} ($1,200 MXN/mes)`,
+                name: `Citas Más MX: Membresía ${planName || 'Plan Integral'} ($1,274 MXN/mes)`,
                 description: `Suscripción mensual recurrente todo incluido (IVA ya incluido)`,
               },
               unit_amount: Math.round(finalPriceMxn * 100),
