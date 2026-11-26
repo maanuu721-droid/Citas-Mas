@@ -61,7 +61,7 @@ export const PromoterDashboardView: React.FC<Props> = ({
 
   // Simulator state
   const [simAffiliatesCount, setSimAffiliatesCount] = useState<number>(15);
-  const [simAveragePlan, setSimAveragePlan] = useState<number>(1200); // Plan único $1,200 MXN/mes
+  const [simAveragePlan, setSimAveragePlan] = useState<number>(1274); // Plan único $1,274 MXN/mes
 
   // Payout request modal / state
   const [isPayoutModalOpen, setIsPayoutModalOpen] = useState<boolean>(false);
@@ -496,7 +496,7 @@ export const PromoterDashboardView: React.FC<Props> = ({
             <button
               className="px-3 py-1.5 rounded-lg bg-white text-slate-900 shadow-xs cursor-default"
             >
-              Plan Integral ($1,200/m)
+              Plan Integral ($1,274/m)
             </button>
           </div>
         </div>
