@@ -561,7 +561,7 @@ export interface ReferredAffiliateItem {
   categoryLabel?: string;
   registeredAt: string;
   plan: SubscriptionPlanType; // 'free' | 'monthly'
-  monthlyPriceMxn: number; // e.g. 0 o 1200
+  monthlyPriceMxn: number; // e.g. 0 o 1274
   monthlyCommissionMxn: number; // 40% del pago mensual
   isSubscriptionActive: boolean; // Mientras siga pagando la suscripción
   subscriptionStatus: 'active' | 'past_due' | 'cancelled';
