@@ -59,7 +59,8 @@ export const ExploreView: React.FC<Props> = ({
   const [selectedCity, setSelectedCity] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [isSpecialtyOpen, setIsSpecialtyOpen] = useState(true);
-  const [isZoneOpen, setIsZoneOpen] = useState(false);
+  const [isZoneOpen, setIsZoneOpen] = useState(true);
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [filterTodayOnly, setFilterTodayOnly] = useState(false);
   const [filterTomorrowOnly, setFilterTomorrowOnly] = useState(false);
   const [filterHighRating, setFilterHighRating] = useState(false);
@@ -107,26 +108,20 @@ export const ExploreView: React.FC<Props> = ({
     }
   }, [activeCategories, selectedCategory]);
 
-  // If currently selected state is no longer valid for the selected country, reset it
-  useEffect(() => {
-    if (selectedState && activeStates.length > 0) {
-      const stateStillExists = activeStates.some((s) => stateMatches(s.code, selectedState));
-      if (!stateStillExists) {
-        setSelectedState('');
-        setSelectedCity('');
-      }
-    }
-  }, [activeStates, selectedCountry]);
+  // Compute active country & state objects for progressive zone selection
+  const selectedCountryInfo = useMemo(() => {
+    if (!selectedCountry) return null;
+    return resolveCountry(selectedCountry);
+  }, [selectedCountry]);
 
-  // If currently selected city is no longer valid for the selected state, reset it
-  useEffect(() => {
-    if (selectedCity) {
-      const cityStillExists = activeCities.some((c) => cityMatches(c.city, selectedCity));
-      if (!cityStillExists) {
-        setSelectedCity('');
-      }
-    }
-  }, [activeCities, selectedCity]);
+  const selectedStateInfo = useMemo(() => {
+    if (!selectedCountryInfo || !selectedState) return null;
+    return (
+      selectedCountryInfo.states.find(
+        (s) => stateMatches(s.code, selectedState) || stateMatches(s.name, selectedState)
+      ) || null
+    );
+  }, [selectedCountryInfo, selectedState]);
 
   // Request browser geolocation
   const handleRequestLocation = () => {
@@ -499,25 +494,34 @@ export const ExploreView: React.FC<Props> = ({
           )}
         </div>
 
-        {/* Acordeón 2: Zona y País */}
-        <div>
+        {/* Acordeón 2: Box Refinado — Encuentra un especialista en tu zona (Progresivo + GPS) */}
+        <div className="bg-gradient-to-br from-emerald-50/40 via-white to-slate-50/60">
           <button
             type="button"
             onClick={() => setIsZoneOpen((prev) => !prev)}
-            className="w-full px-5 py-3.5 flex items-center justify-between text-left hover:bg-slate-50 transition-colors cursor-pointer"
+            className="w-full px-5 py-3.5 flex items-center justify-between text-left hover:bg-emerald-50/40 transition-colors cursor-pointer"
           >
-            <div className="flex items-center space-x-2.5">
-              <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span className="text-xs sm:text-sm font-bold text-slate-800 uppercase tracking-wide">
-                Zona y País
-              </span>
-              {(selectedCity || selectedState || selectedCountry) && (
-                <span className="bg-slate-100 text-slate-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-slate-200">
-                  {selectedCity || selectedState || selectedCountry}
+            <div className="flex items-center flex-wrap gap-2">
+              <div className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <MapPin className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight block">
+                  Encuentra un especialista en tu zona
+                </span>
+                <span className="text-[11px] text-slate-500 hidden sm:block">
+                  Selecciona país, estado y ciudad paso a paso o activa tu GPS
+                </span>
+              </div>
+              {(selectedCity || selectedState || selectedCountry || userLocation) && (
+                <span className="bg-emerald-100 text-emerald-900 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-200">
+                  {selectedCity
+                    ? `${selectedCity}${selectedStateInfo ? `, ${selectedStateInfo.name}` : ''}`
+                    : selectedStateInfo?.name || selectedState || selectedCountry || 'GPS Activo'}
                 </span>
               )}
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 shrink-0">
               {(selectedCity || selectedState || selectedCountry) && (
                 <span
                   role="button"
@@ -527,6 +531,7 @@ export const ExploreView: React.FC<Props> = ({
                     setSelectedState('');
                     setSelectedCity('');
                     setSelectedCountry('');
+                    setShowCountryPicker(false);
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
@@ -534,6 +539,7 @@ export const ExploreView: React.FC<Props> = ({
                       setSelectedState('');
                       setSelectedCity('');
                       setSelectedCountry('');
+                      setShowCountryPicker(false);
                     }
                   }}
                   className="text-[11px] text-emerald-700 hover:text-rose-600 font-semibold flex items-center space-x-1 px-2 py-0.5 rounded-lg hover:bg-slate-100"
@@ -551,74 +557,213 @@ export const ExploreView: React.FC<Props> = ({
           </button>
 
           {isZoneOpen && (
-            <div className="px-5 pb-4 pt-1 flex flex-wrap gap-2">
-              {/* Pill: Todos */}
-              <button
-                id="zone-pill-all"
-                type="button"
-                onClick={() => { setSelectedState(''); setSelectedCity(''); setSelectedCountry(''); }}
-                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1.5 cursor-pointer ${
-                  !selectedState && !selectedCity && !selectedCountry
-                    ? 'bg-emerald-700 text-white shadow-sm'
-                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
-                }`}
-              >
-                <span>🌎 Todo</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${!selectedState && !selectedCity && !selectedCountry ? 'bg-white/20 text-white' : 'bg-slate-200/70 text-slate-600'}`}>
-                  {affiliates.length}
-                </span>
-              </button>
+            <div className="px-5 pb-5 pt-2 space-y-4">
+              {/* Paso 1: Botón único de País + Botón automático de GPS */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  id="zone-select-country-btn"
+                  type="button"
+                  onClick={() => setShowCountryPicker((prev) => !prev)}
+                  className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center space-x-2 cursor-pointer border shadow-2xs ${
+                    selectedCountryInfo
+                      ? 'bg-slate-900 text-white border-slate-800 hover:bg-slate-800'
+                      : 'bg-white text-slate-800 border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/50'
+                  }`}
+                >
+                  <span className="text-base leading-none">{selectedCountryInfo ? selectedCountryInfo.flag : '🌎'}</span>
+                  <span>
+                    {selectedCountryInfo ? `País: ${selectedCountryInfo.name}` : 'Seleccionar País'}
+                  </span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showCountryPicker ? 'rotate-180' : ''}`} />
+                </button>
 
-              {/* Pills de países activos */}
-              {activeCountries.map((c) => {
-                const isSel = countryMatches(selectedCountry, c.name) || selectedCountry === c.code;
-                return (
-                  <button
-                    key={c.code}
-                    type="button"
-                    onClick={() => { setSelectedCountry(isSel ? '' : c.name); setSelectedState(''); setSelectedCity(''); }}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1.5 cursor-pointer ${
-                      isSel
-                        ? 'bg-slate-900 text-white shadow-sm ring-1 ring-slate-700'
-                        : 'bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200'
-                    }`}
-                  >
-                    <span className="text-sm leading-none">{c.flag}</span>
-                    <span>{c.name}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${isSel ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-800 border border-emerald-200/60'}`}>
-                      {c.count}
-                    </span>
-                  </button>
-                );
-              })}
+                <button
+                  id="zone-gps-auto-btn"
+                  type="button"
+                  onClick={() => {
+                    if (userLocation) {
+                      setUserLocation(null);
+                      setLocationError(null);
+                    } else {
+                      handleRequestLocation();
+                    }
+                  }}
+                  disabled={isLocating}
+                  className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center space-x-2 cursor-pointer border shadow-2xs ${
+                    userLocation
+                      ? 'bg-emerald-600 text-white border-emerald-500 hover:bg-emerald-700'
+                      : 'bg-white text-emerald-800 border-emerald-300 hover:bg-emerald-50'
+                  }`}
+                >
+                  <Navigation className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
+                  <span>
+                    {isLocating
+                      ? 'Ubicando por GPS...'
+                      : userLocation
+                      ? 'Ubicación GPS Activa ✓ (Quitar)'
+                      : 'Ubicarme automáticamente por GPS'}
+                  </span>
+                </button>
+              </div>
 
-              {/* Pills de ciudades/zonas rápidas */}
-              {quickZonePills.map((zone) => {
-                const isActive =
-                  cityMatches(selectedCity, zone.cityName) ||
-                  (!selectedCity && stateMatches(selectedState, zone.stateCode));
-                return (
-                  <button
-                    key={zone.id}
-                    id={`zone-pill-${zone.id}`}
-                    type="button"
-                    onClick={() => {
-                      if (isActive) { setSelectedState(''); setSelectedCity(''); }
-                      else { setSelectedState(zone.stateCode); setSelectedCity(zone.cityName); }
-                    }}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1.5 cursor-pointer ${
-                      isActive
-                        ? 'bg-emerald-700 text-white shadow-sm'
-                        : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
-                    }`}
-                  >
-                    <span>{zone.label}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${isActive ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-800 border border-emerald-200/60'}`}>
-                      {zone.count}
+              {/* Selector desplegable de País (cuando el usuario presiona "Seleccionar País") */}
+              {showCountryPicker && (
+                <div className="bg-white rounded-2xl border border-slate-200 p-3.5 space-y-2.5 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wide">
+                      1. Elige un país
                     </span>
-                  </button>
-                );
-              })}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCountry('');
+                        setSelectedState('');
+                        setSelectedCity('');
+                        setShowCountryPicker(false);
+                      }}
+                      className="text-[11px] font-semibold text-slate-500 hover:text-emerald-700 cursor-pointer"
+                    >
+                      Ver todos los países
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {HISPANIC_COUNTRIES.map((c) => {
+                      const activeMatch = activeCountries.find((ac) => ac.code === c.code);
+                      const isSel = selectedCountryInfo?.code === c.code;
+                      return (
+                        <button
+                          key={c.code}
+                          type="button"
+                          onClick={() => {
+                            setSelectedCountry(c.name);
+                            setSelectedState('');
+                            setSelectedCity('');
+                            setShowCountryPicker(false);
+                          }}
+                          className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1.5 cursor-pointer ${
+                            isSel
+                              ? 'bg-emerald-600 text-white shadow-sm'
+                              : 'bg-slate-50 hover:bg-emerald-50 text-slate-800 border border-slate-200'
+                          }`}
+                        >
+                          <span className="text-sm leading-none">{c.flag}</span>
+                          <span>{c.name}</span>
+                          {activeMatch && (
+                            <span
+                              className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                                isSel ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
+                              }`}
+                            >
+                              {activeMatch.count}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Paso 2 (Progresivo): Estados / Departamentos del país seleccionado */}
+              {selectedCountryInfo && (
+                <div className="bg-white rounded-2xl border border-slate-200 p-3.5 space-y-2.5 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                      2. {selectedCountryInfo.subdivisionLabel} en {selectedCountryInfo.flag} {selectedCountryInfo.name}
+                    </span>
+                    {selectedState && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedState('');
+                          setSelectedCity('');
+                        }}
+                        className="text-[11px] font-semibold text-emerald-700 hover:text-rose-600 cursor-pointer"
+                      >
+                        Todos en {selectedCountryInfo.name}
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCountryInfo.states.map((st) => {
+                      const isSel = stateMatches(st.code, selectedState) || stateMatches(st.name, selectedState);
+                      const countInState = affiliates.filter(
+                        (a) => countryMatches(a.country, selectedCountryInfo.name) && (stateMatches(a.state, st.code) || stateMatches(a.state, st.name))
+                      ).length;
+                      return (
+                        <button
+                          key={st.code}
+                          type="button"
+                          onClick={() => {
+                            if (isSel) {
+                              setSelectedState('');
+                              setSelectedCity('');
+                            } else {
+                              setSelectedState(st.code);
+                              setSelectedCity('');
+                            }
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1.5 cursor-pointer ${
+                            isSel
+                              ? 'bg-emerald-600 text-white shadow-sm'
+                              : 'bg-slate-50 hover:bg-emerald-50 text-slate-800 border border-slate-200'
+                          }`}
+                        >
+                          <span>{st.name}</span>
+                          {countInState > 0 && (
+                            <span
+                              className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                                isSel ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
+                              }`}
+                            >
+                              {countInState}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Paso 3 (Progresivo): Ciudades / Zonas del estado seleccionado */}
+              {selectedCountryInfo && selectedStateInfo && selectedStateInfo.cities.length > 0 && (
+                <div className="bg-white rounded-2xl border border-slate-200 p-3.5 space-y-2.5 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">
+                      3. Ciudad / Zona en {selectedStateInfo.name}
+                    </span>
+                    {selectedCity && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCity('')}
+                        className="text-[11px] font-semibold text-emerald-700 hover:text-rose-600 cursor-pointer"
+                      >
+                        Todas las ciudades
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedStateInfo.cities.map((cityName) => {
+                      const isSel = cityMatches(cityName, selectedCity);
+                      return (
+                        <button
+                          key={cityName}
+                          type="button"
+                          onClick={() => setSelectedCity(isSel ? '' : cityName)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                            isSel
+                              ? 'bg-slate-900 text-white shadow-sm'
+                              : 'bg-slate-50 hover:bg-emerald-50 text-slate-800 border border-slate-200'
+                          }`}
+                        >
+                          {cityName}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
