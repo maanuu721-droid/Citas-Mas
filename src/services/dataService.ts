@@ -717,7 +717,6 @@ export class DataService {
     await this.saveAffiliate(updated);
     return updated;
   }
-  }
 
   public async getAppointments(affiliateId?: string): Promise<Appointment[]> {
     await this.initialize();
