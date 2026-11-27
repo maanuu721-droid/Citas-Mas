@@ -33,7 +33,9 @@ import {
   ExternalLink,
   Copy,
   Check,
-  X
+  X,
+  BellRing,
+  ChevronDown
 } from 'lucide-react';
 import { HISPANIC_COUNTRIES, resolveCountry, countryMatches } from '../utils/zoneHelper.ts';
 
@@ -56,6 +58,8 @@ export const ExploreView: React.FC<Props> = ({
   const [selectedState, setSelectedState] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [isSpecialtyOpen, setIsSpecialtyOpen] = useState(true);
+  const [isZoneOpen, setIsZoneOpen] = useState(false);
   const [filterTodayOnly, setFilterTodayOnly] = useState(false);
   const [filterTomorrowOnly, setFilterTomorrowOnly] = useState(false);
   const [filterHighRating, setFilterHighRating] = useState(false);
@@ -306,11 +310,14 @@ export const ExploreView: React.FC<Props> = ({
             <Globe className="w-3.5 h-3.5" />
             <span>Red Internacional de Profesionales · Países de Habla Hispana</span>
           </span>
-          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
-            Agenda tu cita en segundos con confirmación por WhatsApp
+          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <span>Agenda tu cita en segundos con recordatorio y confirmación directo en tu smartphone con notificaciones</span>
+            <span className="inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 align-middle shrink-0">
+              <BellRing className="w-5 h-5 sm:w-6 sm:h-6" />
+            </span>
           </h1>
           <p className="text-sm sm:text-base text-slate-300 mt-2 leading-relaxed">
-            Encuentra psicólogos, masajistas, dentistas, barberos y terapeutas en España, Colombia, Argentina, Chile, México y más países con dirección exacta y cobro garantizado.
+            Encuentra psicólogos, masajistas, dentistas, barberos y terapeutas con dirección exacta y certificados.
           </p>
         </div>
 
@@ -395,147 +402,226 @@ export const ExploreView: React.FC<Props> = ({
       )}
 
       {/* ═══════════════════════════════════════════════════════════
-           FILTRO SIMPLIFICADO — Mobile-first
-           • Pills de Especialidad/Categoría (con emoji, scroll horizontal)
-           • Pills rápidas de Ciudad/Zona
-           • Chips de filtros activos
-           • Botón "Más filtros" colapsable (Hoy / Mañana / Calificación / Ordenar)
+           FILTROS EN ACORDEÓN — Sin scroll horizontal
       ══════════════════════════════════════════════════════════════ */}
-
-      {/* ── Fila 1: Especialidad / Tipo de servicio ── */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between px-1">
-          <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Especialidad</span>
-          {selectedCategory !== 'all' && (
-            <button
-              type="button"
-              onClick={() => setSelectedCategory('all')}
-              className="text-[11px] text-emerald-700 font-semibold flex items-center space-x-1 cursor-pointer"
-            >
-              <FilterX className="w-3 h-3" />
-              <span>Limpiar</span>
-            </button>
-          )}
-        </div>
-        <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-none snap-x snap-mandatory">
-          {/* Pill: Todos */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden divide-y divide-slate-100">
+        {/* Acordeón 1: Especialidad */}
+        <div>
           <button
-            id="cat-pill-all"
             type="button"
-            onClick={() => setSelectedCategory('all')}
-            className={`flex-shrink-0 snap-start flex flex-col items-center justify-center px-4 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer min-w-[72px] ${
-              selectedCategory === 'all'
-                ? 'bg-slate-900 text-white shadow-md ring-2 ring-slate-700'
-                : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 active:scale-95'
-            }`}
+            onClick={() => setIsSpecialtyOpen((prev) => !prev)}
+            className="w-full px-5 py-3.5 flex items-center justify-between text-left hover:bg-slate-50 transition-colors cursor-pointer"
           >
-            <span className="text-xl mb-1">🔍</span>
-            <span className="whitespace-nowrap">Todos</span>
-            <span className={`text-[10px] mt-0.5 font-semibold ${selectedCategory === 'all' ? 'text-emerald-300' : 'text-slate-400'}`}>
-              {zoneAffiliates.length}
-            </span>
+            <div className="flex items-center space-x-2.5">
+              <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span className="text-xs sm:text-sm font-bold text-slate-800 uppercase tracking-wide">
+                Especialidad
+              </span>
+              {selectedCategory !== 'all' && (
+                <span className="bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+                  {activeCategories.find((c) => c.id === selectedCategory)?.label || selectedCategory}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center space-x-2">
+              {selectedCategory !== 'all' && (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedCategory('all');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.stopPropagation();
+                      setSelectedCategory('all');
+                    }
+                  }}
+                  className="text-[11px] text-emerald-700 hover:text-rose-600 font-semibold flex items-center space-x-1 px-2 py-0.5 rounded-lg hover:bg-slate-100"
+                >
+                  <FilterX className="w-3 h-3" />
+                  <span>Limpiar</span>
+                </span>
+              )}
+              <ChevronDown
+                className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${
+                  isSpecialtyOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </div>
           </button>
 
-          {/* Pills dinámicas por categoría activa */}
-          {activeCategories.map((cat) => {
-            const isActive = selectedCategory === cat.id;
-            return (
+          {isSpecialtyOpen && (
+            <div className="px-5 pb-4 pt-1 flex flex-wrap gap-2">
+              {/* Pill: Todos */}
               <button
-                key={cat.id}
-                id={`cat-pill-${cat.id}`}
+                id="cat-pill-all"
                 type="button"
-                onClick={() => setSelectedCategory(isActive ? 'all' : cat.id)}
-                className={`flex-shrink-0 snap-start flex flex-col items-center justify-center px-4 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer min-w-[72px] active:scale-95 ${
-                  isActive
-                    ? 'bg-emerald-600 text-white shadow-md ring-2 ring-emerald-500'
-                    : 'bg-white text-slate-700 border border-slate-200 hover:bg-emerald-50 hover:border-emerald-300'
+                onClick={() => setSelectedCategory('all')}
+                className={`flex items-center space-x-2 px-3.5 py-2 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                  selectedCategory === 'all'
+                    ? 'bg-slate-900 text-white shadow-sm ring-2 ring-slate-700'
+                    : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100'
                 }`}
               >
-                <span className="text-xl mb-1">{cat.emoji || '⚕️'}</span>
-                <span className="whitespace-nowrap text-center leading-tight">{cat.label}</span>
-                <span className={`text-[10px] mt-0.5 font-semibold ${isActive ? 'text-emerald-100' : 'text-slate-400'}`}>
-                  {cat.count}
+                <span className="text-base">🔍</span>
+                <span>Todos</span>
+                <span className={`text-[10px] font-semibold ${selectedCategory === 'all' ? 'text-emerald-300' : 'text-slate-400'}`}>
+                  ({zoneAffiliates.length})
                 </span>
               </button>
-            );
-          })}
+
+              {/* Pills dinámicas por categoría activa */}
+              {activeCategories.map((cat) => {
+                const isActive = selectedCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    id={`cat-pill-${cat.id}`}
+                    type="button"
+                    onClick={() => setSelectedCategory(isActive ? 'all' : cat.id)}
+                    className={`flex items-center space-x-2 px-3.5 py-2 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-500'
+                        : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-emerald-50 hover:border-emerald-300'
+                    }`}
+                  >
+                    <span className="text-base">{cat.emoji || '⚕️'}</span>
+                    <span className="text-left leading-tight">{cat.label}</span>
+                    <span className={`text-[10px] font-semibold ${isActive ? 'text-emerald-100' : 'text-slate-400'}`}>
+                      ({cat.count})
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* ── Fila 2: Zona rápida (ciudades con afiliados) + País ── */}
-      <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-none">
-        <div className="flex items-center space-x-1 text-xs font-bold text-slate-500 shrink-0">
-          <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Zona:</span>
+        {/* Acordeón 2: Zona y País */}
+        <div>
+          <button
+            type="button"
+            onClick={() => setIsZoneOpen((prev) => !prev)}
+            className="w-full px-5 py-3.5 flex items-center justify-between text-left hover:bg-slate-50 transition-colors cursor-pointer"
+          >
+            <div className="flex items-center space-x-2.5">
+              <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span className="text-xs sm:text-sm font-bold text-slate-800 uppercase tracking-wide">
+                Zona y País
+              </span>
+              {(selectedCity || selectedState || selectedCountry) && (
+                <span className="bg-slate-100 text-slate-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-slate-200">
+                  {selectedCity || selectedState || selectedCountry}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center space-x-2">
+              {(selectedCity || selectedState || selectedCountry) && (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedState('');
+                    setSelectedCity('');
+                    setSelectedCountry('');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.stopPropagation();
+                      setSelectedState('');
+                      setSelectedCity('');
+                      setSelectedCountry('');
+                    }
+                  }}
+                  className="text-[11px] text-emerald-700 hover:text-rose-600 font-semibold flex items-center space-x-1 px-2 py-0.5 rounded-lg hover:bg-slate-100"
+                >
+                  <FilterX className="w-3 h-3" />
+                  <span>Limpiar</span>
+                </span>
+              )}
+              <ChevronDown
+                className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${
+                  isZoneOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </div>
+          </button>
+
+          {isZoneOpen && (
+            <div className="px-5 pb-4 pt-1 flex flex-wrap gap-2">
+              {/* Pill: Todos */}
+              <button
+                id="zone-pill-all"
+                type="button"
+                onClick={() => { setSelectedState(''); setSelectedCity(''); setSelectedCountry(''); }}
+                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1.5 cursor-pointer ${
+                  !selectedState && !selectedCity && !selectedCountry
+                    ? 'bg-emerald-700 text-white shadow-sm'
+                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
+                }`}
+              >
+                <span>🌎 Todo</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${!selectedState && !selectedCity && !selectedCountry ? 'bg-white/20 text-white' : 'bg-slate-200/70 text-slate-600'}`}>
+                  {affiliates.length}
+                </span>
+              </button>
+
+              {/* Pills de países activos */}
+              {activeCountries.map((c) => {
+                const isSel = countryMatches(selectedCountry, c.name) || selectedCountry === c.code;
+                return (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => { setSelectedCountry(isSel ? '' : c.name); setSelectedState(''); setSelectedCity(''); }}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1.5 cursor-pointer ${
+                      isSel
+                        ? 'bg-slate-900 text-white shadow-sm ring-1 ring-slate-700'
+                        : 'bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200'
+                    }`}
+                  >
+                    <span className="text-sm leading-none">{c.flag}</span>
+                    <span>{c.name}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${isSel ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-800 border border-emerald-200/60'}`}>
+                      {c.count}
+                    </span>
+                  </button>
+                );
+              })}
+
+              {/* Pills de ciudades/zonas rápidas */}
+              {quickZonePills.map((zone) => {
+                const isActive =
+                  cityMatches(selectedCity, zone.cityName) ||
+                  (!selectedCity && stateMatches(selectedState, zone.stateCode));
+                return (
+                  <button
+                    key={zone.id}
+                    id={`zone-pill-${zone.id}`}
+                    type="button"
+                    onClick={() => {
+                      if (isActive) { setSelectedState(''); setSelectedCity(''); }
+                      else { setSelectedState(zone.stateCode); setSelectedCity(zone.cityName); }
+                    }}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1.5 cursor-pointer ${
+                      isActive
+                        ? 'bg-emerald-700 text-white shadow-sm'
+                        : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
+                    }`}
+                  >
+                    <span>{zone.label}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${isActive ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-800 border border-emerald-200/60'}`}>
+                      {zone.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
-
-        {/* Pill: Todos */}
-        <button
-          id="zone-pill-all"
-          type="button"
-          onClick={() => { setSelectedState(''); setSelectedCity(''); setSelectedCountry(''); }}
-          className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 cursor-pointer active:scale-95 ${
-            !selectedState && !selectedCity && !selectedCountry
-              ? 'bg-emerald-700 text-white shadow-sm'
-              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-          }`}
-        >
-          <span>🌎 Todo</span>
-          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${!selectedState && !selectedCity && !selectedCountry ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
-            {affiliates.length}
-          </span>
-        </button>
-
-        {/* Pills de países activos */}
-        {activeCountries.map((c) => {
-          const isSel = countryMatches(selectedCountry, c.name) || selectedCountry === c.code;
-          return (
-            <button
-              key={c.code}
-              type="button"
-              onClick={() => { setSelectedCountry(isSel ? '' : c.name); setSelectedState(''); setSelectedCity(''); }}
-              className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 cursor-pointer active:scale-95 ${
-                isSel
-                  ? 'bg-slate-900 text-white shadow-sm ring-1 ring-slate-700'
-                  : 'bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200'
-              }`}
-            >
-              <span className="text-sm leading-none">{c.flag}</span>
-              <span>{c.name}</span>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${isSel ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-800 border border-emerald-200/60'}`}>
-                {c.count}
-              </span>
-            </button>
-          );
-        })}
-
-        {/* Pills de ciudades/zonas rápidas */}
-        {quickZonePills.map((zone) => {
-          const isActive =
-            cityMatches(selectedCity, zone.cityName) ||
-            (!selectedCity && stateMatches(selectedState, zone.stateCode));
-          return (
-            <button
-              key={zone.id}
-              id={`zone-pill-${zone.id}`}
-              type="button"
-              onClick={() => {
-                if (isActive) { setSelectedState(''); setSelectedCity(''); }
-                else { setSelectedState(zone.stateCode); setSelectedCity(zone.cityName); }
-              }}
-              className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 cursor-pointer active:scale-95 ${
-                isActive
-                  ? 'bg-emerald-700 text-white shadow-sm'
-                  : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-              }`}
-            >
-              <span>{zone.label}</span>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${isActive ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-800 border border-emerald-200/60'}`}>
-                {zone.count}
-              </span>
-            </button>
-          );
-        })}
       </div>
 
       {/* ── Fila 3: Chips de filtros activos + botón "Más filtros" ── */}
