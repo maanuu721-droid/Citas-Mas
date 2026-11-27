@@ -37,7 +37,8 @@ import {
   BellRing,
   ChevronDown
 } from 'lucide-react';
-import { HISPANIC_COUNTRIES, resolveCountry, countryMatches } from '../utils/zoneHelper.ts';
+import { resolveCountry, countryMatches } from '../utils/zoneHelper.ts';
+import { HISPANIC_COUNTRIES } from '../data/countriesData.ts';
 
 interface Props {
   affiliates: Affiliate[];
