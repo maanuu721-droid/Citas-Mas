@@ -343,18 +343,18 @@ export const ExploreView: React.FC<Props> = ({
             }`}
           >
             <Navigation className={`w-4 h-4 ${isLocating ? 'animate-spin' : ''}`} />
-            <span>
-              {isLocating
-                ? 'Obteniendo GPS...'
-                : userLocation
-                ? 'Ubicación Activa ✓'
-                : 'Usar mi ubicación'}
-            </span>
+            {isLocating ? (
+              <span key="hero-gps-locating">Obteniendo GPS...</span>
+            ) : userLocation ? (
+              <span key="hero-gps-active">Ubicación Activa ✓</span>
+            ) : (
+              <span key="hero-gps-idle">Usar mi ubicación</span>
+            )}
           </button>
         </div>
 
         {locationError && (
-          <p className="text-xs text-amber-300 mt-2 flex items-center space-x-1">
+          <p key="hero-location-error" className="text-xs text-amber-300 mt-2 flex items-center space-x-1">
             <span>ℹ</span>
             <span>{locationError}</span>
           </p>
@@ -597,13 +597,13 @@ export const ExploreView: React.FC<Props> = ({
                   }`}
                 >
                   <Navigation className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
-                  <span>
-                    {isLocating
-                      ? 'Ubicando por GPS...'
-                      : userLocation
-                      ? 'Ubicación GPS Activa ✓ (Quitar)'
-                      : 'Ubicarme automáticamente por GPS'}
-                  </span>
+                  {isLocating ? (
+                    <span key="zone-gps-locating">Ubicando por GPS...</span>
+                  ) : userLocation ? (
+                    <span key="zone-gps-active">Ubicación GPS Activa ✓ (Quitar)</span>
+                  ) : (
+                    <span key="zone-gps-idle">Ubicarme automáticamente por GPS</span>
+                  )}
                 </button>
               </div>
 
@@ -946,16 +946,16 @@ export const ExploreView: React.FC<Props> = ({
       {/* Dynamic Status / Feedback Message */}
       <div className="flex items-center px-1 text-xs text-slate-600">
         {userLocation ? (
-          <span className="font-medium text-emerald-800 flex items-center space-x-1">
+          <span key="status-gps" className="font-medium text-emerald-800 flex items-center space-x-1">
             <Navigation className="w-3.5 h-3.5 text-emerald-600 inline" />
             <span>Mostrando los más cercanos según tu ubicación actual</span>
           </span>
         ) : todayAvailableCount > 0 ? (
-          <span className="font-medium text-emerald-800">
+          <span key="status-today" className="font-medium text-emerald-800">
             ⚡ {todayAvailableCount} disponibles hoy · {sortedAffiliates.length} resultados
           </span>
         ) : (
-          <span>
+          <span key="status-count">
             {sortedAffiliates.length} profesionales encontrados
           </span>
         )}
