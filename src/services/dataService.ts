@@ -640,6 +640,85 @@ export class DataService {
     }
   }
 
+  /**
+   * Crea o actualiza un perfil de usuario en Firestore y caché local (para panel de administración).
+   */
+  public async saveUser(user: UserProfile): Promise<void> {
+    const updatedUser: UserProfile = {
+      ...user,
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      const cachedUsers = localStorage.getItem('citapro_admin_users_cache');
+      const users: UserProfile[] = cachedUsers ? JSON.parse(cachedUsers) : [];
+      const idx = users.findIndex((u) => u.uid === updatedUser.uid);
+      if (idx >= 0) {
+        users[idx] = updatedUser;
+      } else {
+        users.unshift(updatedUser);
+      }
+      localStorage.setItem('citapro_admin_users_cache', JSON.stringify(users));
+    } catch (localErr) {
+      console.warn('LocalStorage saveUser warning:', localErr);
+    }
+
+    try {
+      await setDoc(doc(db, 'users', updatedUser.uid), updatedUser, { merge: true });
+    } catch (err) {
+      console.warn('Firestore saveUser notice:', err);
+    }
+  }
+
+  /**
+   * Sube o cambia el plan/nivel de un afiliado (por ejemplo de Free a Premium / Máximo Nivel).
+   * Actualiza automáticamente todos los privilegios de nivel superior.
+   */
+  public async upgradeAffiliatePlan(
+    affiliate: Affiliate,
+    targetPlan: SubscriptionPlanType,
+    options?: {
+      tierLevel?: 1 | 2 | 3;
+      isTurbo?: boolean;
+      turboLevel?: 1 | 2 | 3;
+      durationDays?: number;
+      isDestacadoSeguro?: boolean;
+    }
+  ): Promise<Affiliate> {
+    const isPaid =
+      targetPlan === 'monthly' ||
+      targetPlan === 'pro' ||
+      targetPlan === 'equipo';
+
+    const durationDays = options?.durationDays ?? 30;
+    const expiresAt = isPaid
+      ? new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString()
+      : undefined;
+
+    const updated: Affiliate = {
+      ...affiliate,
+      plan: targetPlan,
+      affiliateTierLevel: isPaid ? (options?.tierLevel ?? 3) : 1,
+      isTurbo: isPaid ? (options?.isTurbo ?? true) : false,
+      turboLevel: isPaid ? (options?.turboLevel ?? 3) : undefined,
+      freeLevel2PacksAvailable: isPaid
+        ? Math.max(affiliate.freeLevel2PacksAvailable || 0, 1)
+        : 0,
+      isVerified: isPaid ? true : affiliate.isVerified,
+      isDestacadoSeguro:
+        options?.isDestacadoSeguro !== undefined
+          ? options.isDestacadoSeguro
+          : affiliate.isDestacadoSeguro,
+      approvalStatus: isPaid ? 'approved' : affiliate.approvalStatus,
+      planExpiresAt: expiresAt,
+      updatedAt: new Date().toISOString()
+    };
+
+    await this.saveAffiliate(updated);
+    return updated;
+  }
+  }
+
   public async getAppointments(affiliateId?: string): Promise<Appointment[]> {
     await this.initialize();
     try {

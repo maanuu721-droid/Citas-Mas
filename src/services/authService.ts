@@ -1,3 +1,4 @@
+import { initializeApp, deleteApp } from 'firebase/app';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -7,6 +8,7 @@ import {
   signInWithPopup,
   onAuthStateChanged,
   updateProfile,
+  getAuth,
   User as FirebaseUser
 } from 'firebase/auth';
 import {
@@ -16,13 +18,15 @@ import {
   updateDoc
 } from 'firebase/firestore';
 import { auth, db } from '../firebase.ts';
+import firebaseConfig from '../../firebase-applet-config.json';
 import {
   UserProfile,
   UserRole,
   Affiliate,
   ProfessionalDocument,
   AffiliateApprovalStatus,
-  VerificationTier
+  VerificationTier,
+  SubscriptionPlanType
 } from '../types.ts';
 import { DataService } from './dataService.ts';
 import {
@@ -1125,6 +1129,168 @@ export class AuthService {
     } catch (err) {
       console.error('Error approving affiliate:', err);
     }
+  }
+
+  /**
+   * Creación de cuenta desde el Panel de Administrador General sin cerrar la sesión del Admin.
+   * Utiliza una app secundaria temporal de Firebase Auth para registrar correo y contraseña.
+   */
+  public async adminCreateAccount(params: {
+    role: UserRole;
+    email: string;
+    password: string;
+    displayName: string;
+    phone: string;
+    businessName?: string;
+    category?: string;
+    categoryLabel?: string;
+    city?: string;
+    state?: string;
+    address?: string;
+    plan?: SubscriptionPlanType;
+    isTurbo?: boolean;
+    isDestacadoSeguro?: boolean;
+  }): Promise<{ user: UserProfile; affiliate?: Affiliate }> {
+    const email = params.email.trim().toLowerCase();
+    const password = params.password;
+    if (!email || !email.includes('@')) {
+      throw new Error('Ingresa un correo electrónico válido.');
+    }
+    if (!password || password.length < 6) {
+      throw new Error('La contraseña debe tener al menos 6 caracteres.');
+    }
+
+    let uid = `${params.role}-${Date.now()}`;
+    const secondaryAppName = `admin-creator-${Date.now()}`;
+    const secondaryApp = initializeApp(firebaseConfig, secondaryAppName);
+    const secondaryAuth = getAuth(secondaryApp);
+
+    try {
+      const userCred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+      uid = userCred.user.uid;
+      if (params.displayName.trim()) {
+        await updateProfile(userCred.user, { displayName: params.displayName.trim() });
+      }
+      await signOut(secondaryAuth);
+    } catch (fbErr: any) {
+      if (fbErr?.code === 'auth/email-already-in-use') {
+        throw new Error('Este correo electrónico ya está registrado en Firebase Auth.');
+      }
+      if (fbErr?.code === 'auth/weak-password') {
+        throw new Error('La contraseña debe tener al menos 6 caracteres.');
+      }
+      console.warn('Secondary Firebase Auth create notice:', fbErr?.message || fbErr);
+    } finally {
+      try {
+        await deleteApp(secondaryApp);
+      } catch {
+        // ignore cleanup error
+      }
+    }
+
+    const now = new Date().toISOString();
+    let createdAffiliate: Affiliate | undefined;
+    let affiliateId: string | undefined;
+
+    if (params.role === 'affiliate') {
+      affiliateId = `aff-${Date.now()}`;
+      const chosenPlan: SubscriptionPlanType = params.plan || 'free';
+      const isPaid = chosenPlan === 'monthly' || chosenPlan === 'pro' || chosenPlan === 'equipo';
+      const expiresAt = isPaid
+        ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        : undefined;
+
+      createdAffiliate = {
+        id: affiliateId,
+        name: params.displayName.trim() || email.split('@')[0],
+        businessName: (params.businessName || params.displayName).trim(),
+        category: params.category || 'clinicas_medicas',
+        categoryLabel: params.categoryLabel || 'Servicios Profesionales',
+        description: `Negocio profesional registrado en CitasMás: ${(params.businessName || params.displayName).trim()}.`,
+        country: 'México',
+        countryCode: 'MX',
+        state: params.state?.trim() || 'Ciudad de México',
+        city: params.city?.trim() || 'Ciudad de México',
+        address: params.address?.trim() || 'Por definir',
+        lat: 19.4326,
+        lng: -99.1332,
+        phone: params.phone.trim() || '+52 55 0000 0000',
+        email,
+        ownerId: uid,
+        ownerEmail: email,
+        logo: 'https://images.unsplash.com/photo-1594824813589-411a0c86e082?w=240&auto=format&fit=crop&q=80',
+        banner: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=1200&auto=format&fit=crop&q=80',
+        gallery: [],
+        rating: 5.0,
+        reviewCount: 0,
+        completedAppointments: 0,
+        plan: chosenPlan,
+        isTurbo: params.isTurbo ?? isPaid,
+        turboLevel: (params.isTurbo ?? isPaid) ? 3 : undefined,
+        affiliateTierLevel: isPaid ? 3 : 1,
+        freeLevel2PacksAvailable: isPaid ? 1 : 0,
+        isVerified: isPaid || !!params.isDestacadoSeguro,
+        isDestacadoSeguro: !!params.isDestacadoSeguro,
+        verificationTier: params.isDestacadoSeguro ? 'destacado_seguro' : 'active',
+        approvalStatus: 'approved',
+        hasCompletedOnboarding: true,
+        availableToday: true,
+        availableTomorrow: true,
+        planExpiresAt: expiresAt,
+        services: [
+          {
+            id: `srv-${Date.now()}`,
+            name: 'Consulta / Servicio Principal',
+            price: 500,
+            duration: 45,
+            description: 'Servicio profesional personalizado.'
+          }
+        ],
+        workingHours: {
+          days: [1, 2, 3, 4, 5, 6],
+          startTime: '09:00',
+          endTime: '19:00',
+          slotDuration: 45
+        },
+        updatedAt: now
+      };
+
+      await DataService.getInstance().saveAffiliate(createdAffiliate);
+    }
+
+    if (params.role === 'promoter') {
+      const refCode = `CIT-${(params.displayName || 'EMB').replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase()}${Math.floor(10 + Math.random() * 89)}`;
+      await DataService.getInstance().savePromoterProfile({
+        uid,
+        email,
+        displayName: params.displayName.trim(),
+        phone: params.phone.trim(),
+        referralCode: refCode,
+        totalReferredAffiliates: 0,
+        activeSubscribedAffiliates: 0,
+        totalEarnedMxn: 0,
+        pendingPayoutMxn: 0,
+        paidOutMxn: 0,
+        createdAt: now,
+        updatedAt: now
+      });
+    }
+
+    const profile: UserProfile = {
+      uid,
+      email,
+      displayName: params.displayName.trim() || email.split('@')[0],
+      phone: params.phone.trim(),
+      role: params.role,
+      affiliateId,
+      approvalStatus: 'approved',
+      hasCompletedOnboarding: true,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    await DataService.getInstance().saveUser(profile);
+    return { user: profile, affiliate: createdAffiliate };
   }
 
   /**

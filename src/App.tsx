@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from './firebase.ts';
 import { Affiliate, Appointment, WhatsAppMessageAudit, UserProfile, SubscriptionPlanType } from './types.ts';
 import { DataService } from './services/dataService.ts';
 import { AuthService } from './services/authService.ts';
@@ -341,8 +343,43 @@ export default function App() {
 
   const handleUpdateAffiliateInState = (updated: Affiliate) => {
     setCurrentAffiliateUser(updated);
-    setAffiliates((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+    setAffiliates((prev) => {
+      const exists = prev.some((a) => a.id === updated.id);
+      return exists ? prev.map((a) => (a.id === updated.id ? updated : a)) : [updated, ...prev];
+    });
   };
+
+  // Real-time sync for the logged-in affiliate (e.g. when Admin General upgrades plan/tier)
+  useEffect(() => {
+    if (!currentAffiliateUser?.id) return;
+    const unsub = onSnapshot(
+      doc(db, 'affiliates', currentAffiliateUser.id),
+      (snap) => {
+        if (snap.exists()) {
+          const liveAff = snap.data() as Affiliate;
+          setCurrentAffiliateUser((prev) => {
+            if (!prev) return liveAff;
+            if (
+              prev.plan !== liveAff.plan ||
+              prev.affiliateTierLevel !== liveAff.affiliateTierLevel ||
+              prev.isTurbo !== liveAff.isTurbo ||
+              prev.isDestacadoSeguro !== liveAff.isDestacadoSeguro ||
+              prev.approvalStatus !== liveAff.approvalStatus ||
+              prev.updatedAt !== liveAff.updatedAt
+            ) {
+              return liveAff;
+            }
+            return prev;
+          });
+          setAffiliates((prev) => prev.map((a) => (a.id === liveAff.id ? liveAff : a)));
+        }
+      },
+      (err) => {
+        console.warn('Affiliate real-time sync notice:', err);
+      }
+    );
+    return () => unsub();
+  }, [currentAffiliateUser?.id]);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-emerald-200">
@@ -1052,6 +1089,15 @@ export default function App() {
                   adminEmail={adminEmail}
                   onLogoutAdmin={handleAdminLogout}
                   onBackToApp={() => setActiveView('explore')}
+                  onAffiliateUpdated={(updated) => {
+                    setAffiliates((prev) => {
+                      const exists = prev.some((a) => a.id === updated.id);
+                      return exists ? prev.map((a) => (a.id === updated.id ? updated : a)) : [updated, ...prev];
+                    });
+                    if (currentAffiliateUser?.id === updated.id) {
+                      setCurrentAffiliateUser(updated);
+                    }
+                  }}
                   onSelectAffiliateView={(affId) => {
                     const aff = affiliates.find((a) => a.id === affId);
                     if (aff) {

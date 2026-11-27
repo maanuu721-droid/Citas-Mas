@@ -36,12 +36,18 @@ import {
   User,
   Download,
   FolderOpen,
-  Megaphone
+  Megaphone,
+  UserPlus,
+  Crown,
+  Settings,
+  Key,
+  ArrowUpCircle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
   Affiliate,
   UserProfile,
+  UserRole,
   Appointment,
   MarketingCampaignRequest,
   SubscriptionPlanType,
@@ -53,10 +59,12 @@ import {
   KieAiModel
 } from '../types.ts';
 import { DataService } from '../services/dataService.ts';
+import { AuthService } from '../services/authService.ts';
 
 interface Props {
   onBackToApp: () => void;
   onSelectAffiliateView?: (affiliateId: string) => void;
+  onAffiliateUpdated?: (affiliate: Affiliate) => void;
   adminEmail?: string;
   onLogoutAdmin?: () => void;
 }
@@ -66,6 +74,7 @@ type AdminTab = 'marketing_requests' | 'subscriptions' | 'affiliates' | 'users' 
 export const AdminDashboardView: React.FC<Props> = ({
   onBackToApp,
   onSelectAffiliateView,
+  onAffiliateUpdated,
   adminEmail = 'maanuu721@gmail.com',
   onLogoutAdmin
 }) => {
@@ -110,6 +119,31 @@ export const AdminDashboardView: React.FC<Props> = ({
   const [customWebhookPremium, setCustomWebhookPremium] = useState<string>(
     'https://n8n.bahiago.tech/webhook/marketing-citas-mas'
   );
+
+  // Account Creation & Per-Account Management Modals
+  const [showCreateAccountModal, setShowCreateAccountModal] = useState<boolean>(false);
+  const [createAccountRole, setCreateAccountRole] = useState<UserRole>('affiliate');
+  const [isCreatingAccount, setIsCreatingAccount] = useState<boolean>(false);
+  const [createAccountForm, setCreateAccountForm] = useState({
+    displayName: '',
+    email: '',
+    password: '',
+    phone: '+52 55 ',
+    businessName: '',
+    category: 'clinicas_medicas',
+    categoryLabel: 'Clínicas médicas y especialistas',
+    city: 'Ciudad de México',
+    state: 'Ciudad de México',
+    address: '',
+    plan: 'free' as SubscriptionPlanType,
+    isTurbo: false,
+    isDestacadoSeguro: false
+  });
+
+  const [managingAffiliate, setManagingAffiliate] = useState<Affiliate | null>(null);
+  const [accountPanelTab, setAccountPanelTab] = useState<'plan' | 'profile' | 'stats'>('plan');
+  const [isSavingManagedAccount, setIsSavingManagedAccount] = useState<boolean>(false);
+  const [managingUser, setManagingUser] = useState<UserProfile | null>(null);
 
   // Load all system data (one-time for full lists)
   const loadDashboardData = async () => {
@@ -417,6 +451,248 @@ export const AdminDashboardView: React.FC<Props> = ({
     }
   };
 
+  // 8. Helper: check if plan is paid/premium
+  const isPaidPlan = (plan?: SubscriptionPlanType) =>
+    plan === 'monthly' || plan === 'pro' || plan === 'equipo';
+
+  // 9. Quick Upgrade Affiliate (Free -> Premium / Máximo Nivel)
+  const handleQuickUpgradeAffiliate = async (
+    affiliate: Affiliate,
+    targetPlan: SubscriptionPlanType = 'monthly',
+    durationDays = 30
+  ) => {
+    setActionLoadingId(affiliate.id);
+    try {
+      const updated = await DataService.getInstance().upgradeAffiliatePlan(affiliate, targetPlan, {
+        tierLevel: 3,
+        isTurbo: true,
+        turboLevel: 3,
+        durationDays
+      });
+      setAffiliates((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+      if (managingAffiliate?.id === updated.id) {
+        setManagingAffiliate(updated);
+      }
+      onAffiliateUpdated?.(updated);
+      confetti({ particleCount: 70, spread: 70, origin: { y: 0.6 } });
+      showToast(
+        `¡${updated.businessName || updated.name} subió a ${targetPlan === 'equipo' ? 'MÁXIMO NIVEL (EQUIPO)' : 'PREMIUM DE PAGO'}! Acceso total activado.`,
+        'success'
+      );
+    } catch (err: any) {
+      showToast(err?.message || 'Error al subir de grado la cuenta', 'error');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // 10. Downgrade Affiliate to Free
+  const handleDowngradeToFree = async (affiliate: Affiliate) => {
+    setActionLoadingId(affiliate.id);
+    try {
+      const updated = await DataService.getInstance().upgradeAffiliatePlan(affiliate, 'free');
+      setAffiliates((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+      if (managingAffiliate?.id === updated.id) {
+        setManagingAffiliate(updated);
+      }
+      onAffiliateUpdated?.(updated);
+      showToast(`${updated.businessName || updated.name} pasó a plan FREE.`, 'info');
+    } catch (err: any) {
+      showToast(err?.message || 'Error al cambiar a Free', 'error');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // 11. Save full edited affiliate from Per-Account Panel
+  const handleSaveManagedAffiliate = async () => {
+    if (!managingAffiliate) return;
+    setIsSavingManagedAccount(true);
+    try {
+      const isPaid = isPaidPlan(managingAffiliate.plan);
+      const normalized: Affiliate = {
+        ...managingAffiliate,
+        affiliateTierLevel: isPaid ? (managingAffiliate.affiliateTierLevel || 3) : 1,
+        freeLevel2PacksAvailable: isPaid
+          ? Math.max(managingAffiliate.freeLevel2PacksAvailable || 0, 1)
+          : managingAffiliate.freeLevel2PacksAvailable || 0,
+        verificationTier: managingAffiliate.isDestacadoSeguro ? 'destacado_seguro' : 'active',
+        updatedAt: new Date().toISOString()
+      };
+      await DataService.getInstance().saveAffiliate(normalized);
+      setAffiliates((prev) => prev.map((a) => (a.id === normalized.id ? normalized : a)));
+      setManagingAffiliate(normalized);
+      onAffiliateUpdated?.(normalized);
+      showToast(`Cambios guardados para ${normalized.businessName || normalized.name}`, 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Error al guardar cambios de la cuenta', 'error');
+    } finally {
+      setIsSavingManagedAccount(false);
+    }
+  };
+
+  // 12. Create new account (Affiliate, Client, Promoter, Admin) without logging out admin
+  const handleCreateAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsCreatingAccount(true);
+    try {
+      const { user, affiliate } = await AuthService.getInstance().adminCreateAccount({
+        role: createAccountRole,
+        email: createAccountForm.email,
+        password: createAccountForm.password,
+        displayName: createAccountForm.displayName,
+        phone: createAccountForm.phone,
+        businessName: createAccountForm.businessName,
+        category: createAccountForm.category,
+        categoryLabel: createAccountForm.categoryLabel,
+        city: createAccountForm.city,
+        state: createAccountForm.state,
+        address: createAccountForm.address,
+        plan: createAccountForm.plan,
+        isTurbo: createAccountForm.isTurbo,
+        isDestacadoSeguro: createAccountForm.isDestacadoSeguro
+      });
+
+      setUsers((prev) => [user, ...prev.filter((u) => u.uid !== user.uid)]);
+      if (affiliate) {
+        setAffiliates((prev) => [affiliate, ...prev.filter((a) => a.id !== affiliate.id)]);
+        setMetrics((prev) => ({ ...prev, totalAffiliates: prev.totalAffiliates + 1 }));
+        onAffiliateUpdated?.(affiliate);
+      }
+
+      confetti({ particleCount: 60, spread: 65, origin: { y: 0.6 } });
+      showToast(
+        `¡Cuenta de ${createAccountRole === 'affiliate' ? 'Afiliado' : createAccountRole} (${user.email}) creada con éxito!`,
+        'success'
+      );
+      setShowCreateAccountModal(false);
+      setCreateAccountForm({
+        displayName: '',
+        email: '',
+        password: '',
+        phone: '+52 55 ',
+        businessName: '',
+        category: 'clinicas_medicas',
+        categoryLabel: 'Clínicas médicas y especialistas',
+        city: 'Ciudad de México',
+        state: 'Ciudad de México',
+        address: '',
+        plan: 'free',
+        isTurbo: false,
+        isDestacadoSeguro: false
+      });
+    } catch (err: any) {
+      showToast(err?.message || 'Error al crear la nueva cuenta', 'error');
+    } finally {
+      setIsCreatingAccount(false);
+    }
+  };
+
+  // 13. Save edited UserProfile from User Panel
+  const handleSaveManagedUser = async () => {
+    if (!managingUser) return;
+    setIsSavingManagedAccount(true);
+    try {
+      await DataService.getInstance().saveUser(managingUser);
+      setUsers((prev) => prev.map((u) => (u.uid === managingUser.uid ? managingUser : u)));
+      showToast(`Usuario ${managingUser.email} actualizado correctamente`, 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Error al actualizar usuario', 'error');
+    } finally {
+      setIsSavingManagedAccount(false);
+    }
+  };
+
+  // 14. Convert Client/User to Affiliate with 1 click
+  const handleConvertUserToAffiliate = async (usr: UserProfile, initialPlan: SubscriptionPlanType = 'free') => {
+    setActionLoadingId(usr.uid);
+    try {
+      const existing = affiliates.find(
+        (a) => a.ownerId === usr.uid || (usr.email && a.ownerEmail?.toLowerCase() === usr.email.toLowerCase())
+      );
+      if (existing) {
+        setManagingUser(null);
+        setManagingAffiliate(existing);
+        setAccountPanelTab('plan');
+        return;
+      }
+      const now = new Date().toISOString();
+      const isPaid = isPaidPlan(initialPlan);
+      const newAff: Affiliate = {
+        id: `aff-${Date.now()}`,
+        name: usr.displayName || usr.email.split('@')[0],
+        businessName: usr.displayName || 'Nuevo Negocio CitasMás',
+        category: 'clinicas_medicas',
+        categoryLabel: 'Servicios Profesionales',
+        description: `Negocio profesional administrado por ${usr.displayName || usr.email}.`,
+        country: 'México',
+        countryCode: 'MX',
+        state: 'Ciudad de México',
+        city: 'Ciudad de México',
+        address: 'Por definir',
+        lat: 19.4326,
+        lng: -99.1332,
+        phone: usr.phone || '+52 55 0000 0000',
+        email: usr.email,
+        ownerId: usr.uid,
+        ownerEmail: usr.email,
+        logo: 'https://images.unsplash.com/photo-1594824813589-411a0c86e082?w=240&auto=format&fit=crop&q=80',
+        banner: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=1200&auto=format&fit=crop&q=80',
+        gallery: [],
+        rating: 5.0,
+        reviewCount: 0,
+        completedAppointments: 0,
+        plan: initialPlan,
+        isTurbo: isPaid,
+        turboLevel: isPaid ? 3 : undefined,
+        affiliateTierLevel: isPaid ? 3 : 1,
+        freeLevel2PacksAvailable: isPaid ? 1 : 0,
+        isVerified: isPaid,
+        approvalStatus: 'approved',
+        hasCompletedOnboarding: true,
+        availableToday: true,
+        availableTomorrow: true,
+        planExpiresAt: isPaid ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : undefined,
+        services: [
+          {
+            id: `srv-${Date.now()}`,
+            name: 'Servicio Principal',
+            price: 500,
+            duration: 45,
+            description: 'Servicio profesional personalizado.'
+          }
+        ],
+        workingHours: {
+          days: [1, 2, 3, 4, 5, 6],
+          startTime: '09:00',
+          endTime: '19:00',
+          slotDuration: 45
+        },
+        updatedAt: now
+      };
+      await DataService.getInstance().saveAffiliate(newAff);
+      const updatedUsr: UserProfile = {
+        ...usr,
+        role: 'affiliate',
+        affiliateId: newAff.id,
+        approvalStatus: 'approved',
+        updatedAt: now
+      };
+      await DataService.getInstance().saveUser(updatedUsr);
+      setAffiliates((prev) => [newAff, ...prev]);
+      setUsers((prev) => prev.map((u) => (u.uid === updatedUsr.uid ? updatedUsr : u)));
+      onAffiliateUpdated?.(newAff);
+      setManagingUser(null);
+      setManagingAffiliate(newAff);
+      setAccountPanelTab('plan');
+      showToast(`¡${usr.displayName || usr.email} convertido a Afiliado!`, 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Error al convertir usuario a afiliado', 'error');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
   // Filter marketing requests
   const filteredMarketingRequests = marketingRequests.filter((req) => {
     const matchesSearch =
@@ -490,6 +766,19 @@ export const AdminDashboardView: React.FC<Props> = ({
               </span>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setCreateAccountRole('affiliate');
+              setShowCreateAccountModal(true);
+            }}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black px-3.5 py-2 rounded-xl shadow-lg shadow-emerald-950/50 transition-all flex items-center space-x-1.5 cursor-pointer"
+            title="Crear nueva cuenta de afiliado, cliente o promotor"
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>Crear Cuenta</span>
+          </button>
 
           <button
             type="button"
@@ -1292,82 +1581,144 @@ export const AdminDashboardView: React.FC<Props> = ({
         {activeTab === 'affiliates' && (
           <div className="space-y-6">
             <div className="bg-slate-900/80 rounded-3xl border border-slate-800 overflow-hidden">
-              <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+              <div className="p-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <h3 className="text-sm font-bold text-white flex items-center space-x-2">
                   <Users className="w-4 h-4 text-emerald-400" />
                   <span>Listado Maestro de Afiliados ({affiliates.length})</span>
                 </h3>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCreateAccountRole('affiliate');
+                      setShowCreateAccountModal(true);
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black px-3.5 py-2 rounded-xl flex items-center space-x-1.5 shadow transition-all cursor-pointer"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>Crear Nuevo Afiliado</span>
+                  </button>
+                </div>
               </div>
 
               <div className="divide-y divide-slate-800/70">
-                {affiliates.map((aff) => (
-                  <div key={aff.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex items-start space-x-3.5">
-                      <img
-                        src={aff.logo}
-                        alt={aff.name}
-                        className="w-12 h-12 rounded-xl object-cover border border-slate-700 shrink-0"
-                      />
-                      <div className="space-y-1">
-                        <div className="flex items-center space-x-2">
-                          <h4 className="text-sm font-bold text-white">{aff.businessName || aff.name}</h4>
-                          {aff.isDestacadoSeguro && (
-                            <span className="bg-emerald-950 text-emerald-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-emerald-700/60 flex items-center space-x-1">
-                              <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                              <span>Destacado Seguro</span>
-                            </span>
-                          )}
-                        </div>
+                {affiliates.map((aff) => {
+                  const paid = isPaidPlan(aff.plan);
+                  return (
+                    <div key={aff.id} className="p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-slate-800/20 transition-colors">
+                      <div className="flex items-start space-x-3.5">
+                        <img
+                          src={aff.logo}
+                          alt={aff.name}
+                          className="w-12 h-12 rounded-xl object-cover border border-slate-700 shrink-0"
+                        />
+                        <div className="space-y-1">
+                          <div className="flex items-center flex-wrap gap-2">
+                            <h4 className="text-sm font-bold text-white">{aff.businessName || aff.name}</h4>
+                            {paid ? (
+                              <span className="bg-gradient-to-r from-amber-500/20 to-emerald-500/20 text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-500/50 flex items-center space-x-1">
+                                <Crown className="w-3 h-3 text-amber-400" />
+                                <span>PREMIUM ({aff.plan.toUpperCase()}) · NIVEL {aff.affiliateTierLevel || 3}</span>
+                              </span>
+                            ) : (
+                              <span className="bg-slate-800 text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-slate-700 uppercase">
+                                FREE ({aff.plan}) · NIVEL {aff.affiliateTierLevel || 1}
+                              </span>
+                            )}
+                            {aff.isDestacadoSeguro && (
+                              <span className="bg-emerald-950 text-emerald-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-emerald-700/60 flex items-center space-x-1">
+                                <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                                <span>Destacado Seguro</span>
+                              </span>
+                            )}
+                            {aff.isTurbo && (
+                              <span className="bg-amber-950 text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-700/60 flex items-center space-x-1">
+                                <Zap className="w-3 h-3 text-amber-400" />
+                                <span>Turbo N{aff.turboLevel || 1}</span>
+                              </span>
+                            )}
+                          </div>
 
-                        <p className="text-xs text-slate-400">
-                          {aff.categoryLabel} · {aff.city}, {aff.state} · Calificación: ⭐ {aff.rating} ({aff.reviewCount} reseñas)
-                        </p>
+                          <p className="text-xs text-slate-400">
+                            {aff.categoryLabel} · {aff.city}, {aff.state} · ⭐ {aff.rating} ({aff.reviewCount} reseñas) {aff.email ? `· ${aff.email}` : ''}
+                          </p>
 
-                        <div className="text-[11px] text-slate-400 flex flex-wrap gap-2 pt-0.5">
-                          <span>Documentos: {aff.documents?.length || 0} registrados</span>
-                          <span>Citas completadas: {aff.completedAppointments}</span>
-                          <span>WhatsApp acumulados: {aff.monthlyMessagesSent || 0}</span>
+                          <div className="text-[11px] text-slate-400 flex flex-wrap gap-3 pt-0.5">
+                            <span>Documentos: {aff.documents?.length || 0}</span>
+                            <span>Citas: {aff.completedAppointments}</span>
+                            <span>WhatsApp: {aff.monthlyMessagesSent || 0}</span>
+                            {aff.planExpiresAt && (
+                              <span className="text-emerald-400 font-medium">
+                                Vence: {new Date(aff.planExpiresAt).toLocaleDateString('es-MX')}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center space-x-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => handleToggleDestacadoSeguro(aff)}
-                        className={`text-xs font-bold px-3.5 py-2 rounded-xl border flex items-center space-x-1.5 transition-all ${
-                          aff.isDestacadoSeguro
-                            ? 'bg-emerald-950/60 text-emerald-300 border-emerald-700 hover:bg-emerald-900/60'
-                            : 'bg-slate-800 text-slate-300 border-slate-700 hover:text-white'
-                        }`}
-                      >
-                        <Award className="w-3.5 h-3.5 text-amber-400" />
-                        <span>{aff.isDestacadoSeguro ? 'Destacado Seguro Activo' : 'Otorgar Destacado Seguro'}</span>
-                      </button>
+                      <div className="flex items-center flex-wrap gap-2 shrink-0">
+                        {!paid && (
+                          <button
+                            type="button"
+                            disabled={actionLoadingId === aff.id}
+                            onClick={() => handleQuickUpgradeAffiliate(aff, 'monthly')}
+                            className="bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 text-xs font-black px-3.5 py-2 rounded-xl flex items-center space-x-1.5 shadow-lg shadow-amber-950/30 transition-all cursor-pointer"
+                            title="Subir automáticamente de Free a Premium / Nivel Máximo con acceso completo"
+                          >
+                            <ArrowUpCircle className="w-3.5 h-3.5" />
+                            <span>Subir a Premium</span>
+                          </button>
+                        )}
 
-                      {onSelectAffiliateView && (
                         <button
                           type="button"
-                          onClick={() => onSelectAffiliateView(aff.id)}
-                          className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium px-3 py-2 rounded-xl border border-slate-700"
+                          onClick={() => {
+                            setManagingAffiliate(aff);
+                            setAccountPanelTab('plan');
+                          }}
+                          className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center space-x-1.5 shadow transition-all cursor-pointer"
+                          title="Abrir panel completo de administración de esta cuenta"
                         >
-                          Ver Perfil
+                          <Settings className="w-3.5 h-3.5" />
+                          <span>Administrar Cuenta</span>
                         </button>
-                      )}
 
-                      <button
-                        type="button"
-                        disabled={actionLoadingId === aff.id}
-                        onClick={() => handleDeleteAffiliate(aff.id, aff.businessName || aff.name)}
-                        className="bg-rose-950/80 hover:bg-rose-900 border border-rose-800 text-rose-300 hover:text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center space-x-1 transition-all cursor-pointer"
-                        title="Eliminar permanentemente este afiliado"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>Eliminar</span>
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleDestacadoSeguro(aff)}
+                          className={`text-xs font-bold px-3 py-2 rounded-xl border flex items-center space-x-1.5 transition-all cursor-pointer ${
+                            aff.isDestacadoSeguro
+                              ? 'bg-emerald-950/60 text-emerald-300 border-emerald-700 hover:bg-emerald-900/60'
+                              : 'bg-slate-800 text-slate-300 border-slate-700 hover:text-white'
+                          }`}
+                        >
+                          <Award className="w-3.5 h-3.5 text-amber-400" />
+                          <span>{aff.isDestacadoSeguro ? 'Destacado' : 'Dar Destacado'}</span>
+                        </button>
+
+                        {onSelectAffiliateView && (
+                          <button
+                            type="button"
+                            onClick={() => onSelectAffiliateView(aff.id)}
+                            className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium px-3 py-2 rounded-xl border border-slate-700 cursor-pointer"
+                          >
+                            Ver Perfil
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          disabled={actionLoadingId === aff.id}
+                          onClick={() => handleDeleteAffiliate(aff.id, aff.businessName || aff.name)}
+                          className="bg-rose-950/80 hover:bg-rose-900 border border-rose-800 text-rose-300 hover:text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center space-x-1 transition-all cursor-pointer"
+                          title="Eliminar permanentemente este afiliado"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -1379,11 +1730,22 @@ export const AdminDashboardView: React.FC<Props> = ({
         {activeTab === 'users' && (
           <div className="space-y-6">
             <div className="bg-slate-900/80 rounded-3xl border border-slate-800 overflow-hidden">
-              <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+              <div className="p-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <h3 className="text-sm font-bold text-white flex items-center space-x-2">
                   <User className="w-4 h-4 text-cyan-400" />
                   <span>Listado Maestro de Usuarios & Clientes ({users.length})</span>
                 </h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCreateAccountRole('client');
+                    setShowCreateAccountModal(true);
+                  }}
+                  className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-black px-3.5 py-2 rounded-xl flex items-center space-x-1.5 shadow transition-all cursor-pointer"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>Crear Nueva Cuenta</span>
+                </button>
               </div>
 
               {users.length === 0 ? (
@@ -1392,46 +1754,93 @@ export const AdminDashboardView: React.FC<Props> = ({
                 </div>
               ) : (
                 <div className="divide-y divide-slate-800/70">
-                  {users.map((usr) => (
-                    <div key={usr.uid} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center space-x-2">
-                          <h4 className="text-sm font-bold text-white">{usr.displayName || 'Usuario'}</h4>
-                          <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                              usr.role === 'admin'
-                                ? 'bg-purple-950 text-purple-300 border border-purple-700'
-                                : usr.role === 'promoter'
-                                ? 'bg-amber-950 text-amber-300 border border-amber-700'
-                                : usr.role === 'affiliate'
-                                ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
-                                : 'bg-blue-950 text-blue-300 border border-blue-700'
-                            }`}
-                          >
-                            {usr.role === 'client' ? 'Cliente / Usuario Final' : usr.role}
-                          </span>
+                  {users.map((usr) => {
+                    const linkedAff = affiliates.find(
+                      (a) =>
+                        a.id === usr.affiliateId ||
+                        a.ownerId === usr.uid ||
+                        (usr.email && a.ownerEmail?.toLowerCase() === usr.email.toLowerCase())
+                    );
+                    return (
+                      <div key={usr.uid} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-800/20 transition-colors">
+                        <div className="space-y-1">
+                          <div className="flex items-center flex-wrap gap-2">
+                            <h4 className="text-sm font-bold text-white">{usr.displayName || 'Usuario'}</h4>
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                                usr.role === 'admin'
+                                  ? 'bg-purple-950 text-purple-300 border border-purple-700'
+                                  : usr.role === 'promoter'
+                                  ? 'bg-amber-950 text-amber-300 border border-amber-700'
+                                  : usr.role === 'affiliate'
+                                  ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
+                                  : 'bg-blue-950 text-blue-300 border border-blue-700'
+                              }`}
+                            >
+                              {usr.role === 'client' ? 'Cliente / Usuario Final' : usr.role}
+                            </span>
+                            {linkedAff && (
+                              <span
+                                className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
+                                  isPaidPlan(linkedAff.plan)
+                                    ? 'bg-amber-500/15 text-amber-300 border-amber-500/40'
+                                    : 'bg-slate-800 text-slate-300 border-slate-700'
+                                }`}
+                              >
+                                {isPaidPlan(linkedAff.plan) ? `PREMIUM (${linkedAff.plan.toUpperCase()})` : `FREE (${linkedAff.plan})`}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-x-3 text-xs text-slate-400">
+                            <span>Email: <strong className="text-slate-200">{usr.email}</strong></span>
+                            {usr.phone && <span>Tel: {usr.phone}</span>}
+                            {usr.createdAt && <span>Registrado: {new Date(usr.createdAt).toLocaleDateString('es-MX')}</span>}
+                          </div>
                         </div>
-                        <div className="flex flex-wrap items-center gap-x-3 text-xs text-slate-400">
-                          <span>Email: <strong className="text-slate-200">{usr.email}</strong></span>
-                          {usr.phone && <span>Tel: {usr.phone}</span>}
-                          {usr.createdAt && <span>Registrado: {new Date(usr.createdAt).toLocaleDateString('es-MX')}</span>}
-                        </div>
-                      </div>
 
-                      <div className="flex items-center space-x-2 shrink-0">
-                        <button
-                          type="button"
-                          disabled={actionLoadingId === usr.uid}
-                          onClick={() => handleDeleteUser(usr.uid, usr.email || usr.displayName)}
-                          className="bg-rose-950/80 hover:bg-rose-900 border border-rose-800 text-rose-300 hover:text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center space-x-1 transition-all cursor-pointer"
-                          title="Eliminar permanentemente este usuario"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>Eliminar Cuenta</span>
-                        </button>
+                        <div className="flex items-center flex-wrap gap-2 shrink-0">
+                          {linkedAff && !isPaidPlan(linkedAff.plan) && (
+                            <button
+                              type="button"
+                              disabled={actionLoadingId === linkedAff.id}
+                              onClick={() => handleQuickUpgradeAffiliate(linkedAff, 'monthly')}
+                              className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black px-3 py-2 rounded-xl flex items-center space-x-1 transition-all cursor-pointer"
+                            >
+                              <ArrowUpCircle className="w-3.5 h-3.5" />
+                              <span>Subir a Premium</span>
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (linkedAff) {
+                                setManagingAffiliate(linkedAff);
+                                setAccountPanelTab('plan');
+                              } else {
+                                setManagingUser(usr);
+                              }
+                            }}
+                            className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center space-x-1 transition-all cursor-pointer"
+                          >
+                            <Settings className="w-3.5 h-3.5" />
+                            <span>Administrar Cuenta</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={actionLoadingId === usr.uid}
+                            onClick={() => handleDeleteUser(usr.uid, usr.email || usr.displayName)}
+                            className="bg-rose-950/80 hover:bg-rose-900 border border-rose-800 text-rose-300 hover:text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center space-x-1 transition-all cursor-pointer"
+                            title="Eliminar permanentemente este usuario"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Eliminar</span>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1963,6 +2372,768 @@ export const AdminDashboardView: React.FC<Props> = ({
                 className="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-4 py-2 rounded-xl"
               >
                 Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ====================================================================
+          MODAL: CREAR NUEVA CUENTA (AFILIADO, CLIENTE, PROMOTOR, ADMIN)
+          ==================================================================== */}
+      {showCreateAccountModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-2xl p-6 space-y-5 shadow-2xl my-8">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">Crear Nueva Cuenta en CitasMás</h3>
+                  <p className="text-[11px] text-slate-400">Alta directa desde Administración General sin cerrar tu sesión</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateAccountModal(false)}
+                className="text-slate-400 hover:text-white p-1.5 rounded-lg bg-slate-800"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateAccount} className="space-y-4">
+              {/* Role selector */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1.5">Tipo de Cuenta</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {(
+                    [
+                      { id: 'affiliate', label: 'Afiliado / Negocio' },
+                      { id: 'client', label: 'Cliente Final' },
+                      { id: 'promoter', label: 'Embajador 40%' },
+                      { id: 'admin', label: 'Administrador' }
+                    ] as { id: UserRole; label: string }[]
+                  ).map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => setCreateAccountRole(r.id)}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                        createAccountRole === r.id
+                          ? 'bg-emerald-600 text-white border-emerald-500 shadow'
+                          : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">Nombre Completo *</label>
+                  <input
+                    type="text"
+                    required
+                    value={createAccountForm.displayName}
+                    onChange={(e) => setCreateAccountForm({ ...createAccountForm, displayName: e.target.value })}
+                    placeholder="Ej. Dra. Sofía Ramírez"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">Teléfono / WhatsApp *</label>
+                  <input
+                    type="text"
+                    required
+                    value={createAccountForm.phone}
+                    onChange={(e) => setCreateAccountForm({ ...createAccountForm, phone: e.target.value })}
+                    placeholder="+52 55 1234 5678"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">Correo Electrónico *</label>
+                  <input
+                    type="email"
+                    required
+                    value={createAccountForm.email}
+                    onChange={(e) => setCreateAccountForm({ ...createAccountForm, email: e.target.value })}
+                    placeholder="correo@ejemplo.com"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">Contraseña (mín. 6 caracteres) *</label>
+                  <input
+                    type="text"
+                    required
+                    minLength={6}
+                    value={createAccountForm.password}
+                    onChange={(e) => setCreateAccountForm({ ...createAccountForm, password: e.target.value })}
+                    placeholder="Contraseña de acceso"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              {createAccountRole === 'affiliate' && (
+                <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-3 text-xs">
+                  <h4 className="text-xs font-black text-emerald-400 uppercase tracking-wider">Datos del Negocio y Nivel Inicial</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-slate-400 font-semibold mb-1">Nombre Comercial del Negocio</label>
+                      <input
+                        type="text"
+                        value={createAccountForm.businessName}
+                        onChange={(e) => setCreateAccountForm({ ...createAccountForm, businessName: e.target.value })}
+                        placeholder="Ej. Clínica Dental Sonrisa"
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-400 font-semibold mb-1">Plan / Grado Inicial</label>
+                      <select
+                        value={createAccountForm.plan}
+                        onChange={(e) => setCreateAccountForm({ ...createAccountForm, plan: e.target.value as SubscriptionPlanType })}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500 outline-none"
+                      >
+                        <option value="free">FREE — Plan Gratuito (Nivel 1)</option>
+                        <option value="monthly">PREMIUM — Plan Mensual Integral (Acceso Total)</option>
+                        <option value="pro">PRO — Plan Profesional (Acceso Total)</option>
+                        <option value="equipo">MÁXIMO NIVEL — Plan Equipo (Acceso Total + Boost)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-slate-400 font-semibold mb-1">Ciudad</label>
+                      <input
+                        type="text"
+                        value={createAccountForm.city}
+                        onChange={(e) => setCreateAccountForm({ ...createAccountForm, city: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-400 font-semibold mb-1">Estado</label>
+                      <input
+                        type="text"
+                        value={createAccountForm.state}
+                        onChange={(e) => setCreateAccountForm({ ...createAccountForm, state: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500 outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-4 pt-1">
+                    <label className="flex items-center space-x-2 cursor-pointer text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={createAccountForm.isTurbo}
+                        onChange={(e) => setCreateAccountForm({ ...createAccountForm, isTurbo: e.target.checked })}
+                        className="rounded border-slate-700"
+                      />
+                      <span>Activar Turbo Boost</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={createAccountForm.isDestacadoSeguro}
+                        onChange={(e) => setCreateAccountForm({ ...createAccountForm, isDestacadoSeguro: e.target.checked })}
+                        className="rounded border-slate-700"
+                      />
+                      <span>Otorgar Insignia Destacado Seguro</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateAccountModal(false)}
+                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingAccount}
+                  className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-black px-5 py-2.5 rounded-xl flex items-center space-x-2 shadow-lg cursor-pointer"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>{isCreatingAccount ? 'Creando Cuenta...' : 'Crear Cuenta Ahora'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ====================================================================
+          MODAL: PANEL COMPLETO DE ADMINISTRACIÓN POR CUENTA (AFILIADO)
+          ==================================================================== */}
+      {managingAffiliate && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-3xl p-6 space-y-5 shadow-2xl my-8">
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-slate-800 pb-4 gap-3">
+              <div className="flex items-center space-x-3">
+                <img
+                  src={managingAffiliate.logo}
+                  alt={managingAffiliate.name}
+                  className="w-12 h-12 rounded-2xl object-cover border border-slate-700"
+                />
+                <div>
+                  <div className="flex items-center flex-wrap gap-2">
+                    <h3 className="text-base font-black text-white">
+                      {managingAffiliate.businessName || managingAffiliate.name}
+                    </h3>
+                    <span
+                      className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${
+                        isPaidPlan(managingAffiliate.plan)
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50'
+                          : 'bg-slate-800 text-slate-300 border border-slate-700'
+                      }`}
+                    >
+                      {isPaidPlan(managingAffiliate.plan)
+                        ? `PREMIUM (${managingAffiliate.plan.toUpperCase()}) · NIVEL ${managingAffiliate.affiliateTierLevel || 3}`
+                        : `FREE · NIVEL ${managingAffiliate.affiliateTierLevel || 1}`}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    ID: {managingAffiliate.id} · {managingAffiliate.email || managingAffiliate.ownerEmail || 'Sin correo'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setManagingAffiliate(null)}
+                className="text-slate-400 hover:text-white p-1.5 rounded-lg bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Sub-tabs */}
+            <div className="flex gap-2 border-b border-slate-800 pb-2">
+              {(
+                [
+                  { id: 'plan', label: 'Plan, Grado & Upgrade' },
+                  { id: 'profile', label: 'Perfil, Verificación & Banco' },
+                  { id: 'stats', label: 'Uso, Recursos & Acciones' }
+                ] as const
+              ).map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setAccountPanelTab(t.id)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    accountPanelTab === t.id
+                      ? 'bg-indigo-600 text-white shadow'
+                      : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* SUB-TAB 1: PLAN, GRADO & UPGRADE */}
+            {accountPanelTab === 'plan' && (
+              <div className="space-y-4 text-xs">
+                {/* One-click Upgrade / Downgrade Banner */}
+                <div className="bg-gradient-to-r from-amber-950/60 via-slate-950 to-emerald-950/50 border border-amber-700/40 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-sm font-black text-white flex items-center space-x-1.5">
+                      <Crown className="w-4 h-4 text-amber-400" />
+                      <span>Activación Instantánea de Grado</span>
+                    </h4>
+                    <p className="text-slate-300 text-[11px] mt-0.5">
+                      Al dar Upgrade, la cuenta sube automáticamente al máximo nivel con acceso total a Marketing IA (Etapas 1-4), CRM WhatsApp, Link/QR, Exposición y Cobros Stripe.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      disabled={actionLoadingId === managingAffiliate.id}
+                      onClick={() => handleQuickUpgradeAffiliate(managingAffiliate, 'monthly', 30)}
+                      className="bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black px-3.5 py-2 rounded-xl flex items-center space-x-1.5 shadow cursor-pointer"
+                    >
+                      <ArrowUpCircle className="w-4 h-4" />
+                      <span>Subir a Premium (30d)</span>
+                    </button>
+                    {isPaidPlan(managingAffiliate.plan) && (
+                      <button
+                        type="button"
+                        disabled={actionLoadingId === managingAffiliate.id}
+                        onClick={() => handleDowngradeToFree(managingAffiliate)}
+                        className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-3 py-2 rounded-xl border border-slate-700 cursor-pointer"
+                      >
+                        Bajar a Free
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Granular controls */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-400 font-semibold mb-1">Plan Activo</label>
+                    <select
+                      value={managingAffiliate.plan}
+                      onChange={(e) => {
+                        const p = e.target.value as SubscriptionPlanType;
+                        const paid = isPaidPlan(p);
+                        setManagingAffiliate({
+                          ...managingAffiliate,
+                          plan: p,
+                          affiliateTierLevel: paid ? 3 : 1,
+                          isTurbo: paid ? true : false,
+                          freeLevel2PacksAvailable: paid ? Math.max(managingAffiliate.freeLevel2PacksAvailable || 0, 1) : 0
+                        });
+                      }}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+                    >
+                      <option value="free">FREE (Gratuito)</option>
+                      <option value="monthly">MONTHLY (Premium Integral $1,274/mes)</option>
+                      <option value="pro">PRO (Profesional)</option>
+                      <option value="equipo">EQUIPO (Máximo Nivel + Boost)</option>
+                      <option value="basico">BÁSICO</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 font-semibold mb-1">Nivel de Afiliado (Tier)</label>
+                    <select
+                      value={managingAffiliate.affiliateTierLevel || 1}
+                      onChange={(e) =>
+                        setManagingAffiliate({
+                          ...managingAffiliate,
+                          affiliateTierLevel: Number(e.target.value) as 1 | 2 | 3
+                        })
+                      }
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+                    >
+                      <option value={1}>Nivel 1 — Básico</option>
+                      <option value={2}>Nivel 2 — Pro</option>
+                      <option value={3}>Nivel 3 — Más Alto Nivel (Acceso Total)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 font-semibold mb-1">Fecha de Vencimiento</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="date"
+                        value={managingAffiliate.planExpiresAt ? managingAffiliate.planExpiresAt.slice(0, 10) : ''}
+                        onChange={(e) =>
+                          setManagingAffiliate({
+                            ...managingAffiliate,
+                            planExpiresAt: e.target.value ? new Date(e.target.value).toISOString() : undefined
+                          })
+                        }
+                        className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setManagingAffiliate({
+                            ...managingAffiliate,
+                            planExpiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+                          })
+                        }
+                        className="bg-slate-800 hover:bg-slate-700 text-emerald-300 font-bold px-2.5 py-2 rounded-xl border border-slate-700 cursor-pointer"
+                      >
+                        +1 Año
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 font-semibold mb-1">Packs Nivel 2 Gratis Disponibles</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={managingAffiliate.freeLevel2PacksAvailable || 0}
+                      onChange={(e) =>
+                        setManagingAffiliate({
+                          ...managingAffiliate,
+                          freeLevel2PacksAvailable: Number(e.target.value)
+                        })
+                      }
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-4 pt-1">
+                  <label className="flex items-center space-x-2 cursor-pointer text-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={!!managingAffiliate.isTurbo}
+                      onChange={(e) =>
+                        setManagingAffiliate({
+                          ...managingAffiliate,
+                          isTurbo: e.target.checked,
+                          turboLevel: e.target.checked ? (managingAffiliate.turboLevel || 3) : undefined
+                        })
+                      }
+                    />
+                    <span>Turbo Activo (Prioridad en búsquedas)</span>
+                  </label>
+                  <label className="flex items-center space-x-2 cursor-pointer text-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={!!managingAffiliate.hasAutoPaymentCard}
+                      onChange={(e) =>
+                        setManagingAffiliate({
+                          ...managingAffiliate,
+                          hasAutoPaymentCard: e.target.checked
+                        })
+                      }
+                    />
+                    <span>Tarjeta Domiciliada / Membresía Pagada</span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {/* SUB-TAB 2: PERFIL, VERIFICACIÓN & BANCO */}
+            {accountPanelTab === 'profile' && (
+              <div className="space-y-4 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-400 font-semibold mb-1">Nombre Comercial</label>
+                    <input
+                      type="text"
+                      value={managingAffiliate.businessName}
+                      onChange={(e) => setManagingAffiliate({ ...managingAffiliate, businessName: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 font-semibold mb-1">Titular / Profesional</label>
+                    <input
+                      type="text"
+                      value={managingAffiliate.name}
+                      onChange={(e) => setManagingAffiliate({ ...managingAffiliate, name: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 font-semibold mb-1">Correo de Contacto</label>
+                    <input
+                      type="email"
+                      value={managingAffiliate.email || ''}
+                      onChange={(e) => setManagingAffiliate({ ...managingAffiliate, email: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 font-semibold mb-1">Teléfono / WhatsApp</label>
+                    <input
+                      type="text"
+                      value={managingAffiliate.phone}
+                      onChange={(e) => setManagingAffiliate({ ...managingAffiliate, phone: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 font-semibold mb-1">Ciudad</label>
+                    <input
+                      type="text"
+                      value={managingAffiliate.city}
+                      onChange={(e) => setManagingAffiliate({ ...managingAffiliate, city: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 font-semibold mb-1">Estado</label>
+                    <input
+                      type="text"
+                      value={managingAffiliate.state}
+                      onChange={(e) => setManagingAffiliate({ ...managingAffiliate, state: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-slate-400 font-semibold mb-1">Dirección</label>
+                    <input
+                      type="text"
+                      value={managingAffiliate.address}
+                      onChange={(e) => setManagingAffiliate({ ...managingAffiliate, address: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 font-semibold mb-1">Estado de Aprobación</label>
+                    <select
+                      value={managingAffiliate.approvalStatus || 'approved'}
+                      onChange={(e) =>
+                        setManagingAffiliate({
+                          ...managingAffiliate,
+                          approvalStatus: e.target.value as AffiliateApprovalStatus
+                        })
+                      }
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+                    >
+                      <option value="approved">Aprobado (Visible en Portal)</option>
+                      <option value="pending">Pendiente de Revisión</option>
+                      <option value="rejected">Suspendido / Rechazado</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 font-semibold mb-1">CLABE Interbancaria (18 dígitos)</label>
+                    <input
+                      type="text"
+                      value={managingAffiliate.payoutClabe || ''}
+                      onChange={(e) => setManagingAffiliate({ ...managingAffiliate, payoutClabe: e.target.value })}
+                      placeholder="Sin CLABE registrada"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-4 pt-1">
+                  <label className="flex items-center space-x-2 cursor-pointer text-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={!!managingAffiliate.isVerified}
+                      onChange={(e) => setManagingAffiliate({ ...managingAffiliate, isVerified: e.target.checked })}
+                    />
+                    <span>Cuenta Verificada</span>
+                  </label>
+                  <label className="flex items-center space-x-2 cursor-pointer text-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={!!managingAffiliate.isDestacadoSeguro}
+                      onChange={(e) =>
+                        setManagingAffiliate({ ...managingAffiliate, isDestacadoSeguro: e.target.checked })
+                      }
+                    />
+                    <span>Destacado Seguro</span>
+                  </label>
+                  <label className="flex items-center space-x-2 cursor-pointer text-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={!!managingAffiliate.availableToday}
+                      onChange={(e) => setManagingAffiliate({ ...managingAffiliate, availableToday: e.target.checked })}
+                    />
+                    <span>Disponible Hoy</span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {/* SUB-TAB 3: USO, RECURSOS & ACCIONES */}
+            {accountPanelTab === 'stats' && (
+              <div className="space-y-4 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3">
+                    <span className="text-slate-400 block">Servicios Activos</span>
+                    <span className="text-lg font-black text-white">{managingAffiliate.services?.length || 0}</span>
+                  </div>
+                  <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3">
+                    <span className="text-slate-400 block">Citas Completadas</span>
+                    <span className="text-lg font-black text-white">{managingAffiliate.completedAppointments || 0}</span>
+                  </div>
+                  <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3">
+                    <span className="text-slate-400 block">WhatsApp Enviados</span>
+                    <span className="text-lg font-black text-white">{managingAffiliate.monthlyMessagesSent || 0}</span>
+                  </div>
+                  <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3">
+                    <span className="text-slate-400 block">Buyer Personas IA</span>
+                    <span className="text-lg font-black text-emerald-400">{managingAffiliate.buyerPersonas?.length || 0}</span>
+                  </div>
+                  <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3">
+                    <span className="text-slate-400 block">Packs 9:16 IA</span>
+                    <span className="text-lg font-black text-indigo-400">{managingAffiliate.imagePackages?.length || 0}</span>
+                  </div>
+                  <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3">
+                    <span className="text-slate-400 block">Videos IA</span>
+                    <span className="text-lg font-black text-amber-400">{managingAffiliate.monthlyVideos?.length || 0}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {onSelectAffiliateView && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const id = managingAffiliate.id;
+                        setManagingAffiliate(null);
+                        onSelectAffiliateView(id);
+                      }}
+                      className="bg-slate-800 hover:bg-slate-700 text-white font-bold px-3.5 py-2 rounded-xl border border-slate-700 flex items-center space-x-1.5 cursor-pointer"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Abrir Landing Pública</span>
+                    </button>
+                  )}
+                  {(managingAffiliate.email || managingAffiliate.ownerEmail) && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const targetEmail = managingAffiliate.email || managingAffiliate.ownerEmail || '';
+                        try {
+                          await AuthService.getInstance().sendPasswordRecoveryEmail(targetEmail);
+                          showToast(`Correo de recuperación enviado a ${targetEmail}`, 'success');
+                        } catch (err: any) {
+                          showToast(err?.message || 'No se pudo enviar correo de recuperación', 'error');
+                        }
+                      }}
+                      className="bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold px-3.5 py-2 rounded-xl border border-slate-700 flex items-center space-x-1.5 cursor-pointer"
+                    >
+                      <Key className="w-3.5 h-3.5" />
+                      <span>Enviar Reset de Contraseña</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const targetId = managingAffiliate.id;
+                      const targetName = managingAffiliate.businessName || managingAffiliate.name;
+                      await handleDeleteAffiliate(targetId, targetName);
+                      setManagingAffiliate(null);
+                    }}
+                    className="bg-rose-950 hover:bg-rose-900 text-rose-200 font-bold px-3.5 py-2 rounded-xl border border-rose-800 flex items-center space-x-1.5 cursor-pointer ml-auto"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Eliminar Cuenta</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Footer */}
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setManagingAffiliate(null)}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold px-4 py-2 rounded-xl cursor-pointer"
+              >
+                Cerrar
+              </button>
+              <button
+                type="button"
+                disabled={isSavingManagedAccount}
+                onClick={handleSaveManagedAffiliate}
+                className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-black px-5 py-2 rounded-xl flex items-center space-x-1.5 shadow cursor-pointer"
+              >
+                <Check className="w-4 h-4" />
+                <span>{isSavingManagedAccount ? 'Guardando...' : 'Guardar Todos los Cambios'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ====================================================================
+          MODAL: PANEL DE ADMINISTRACIÓN DE USUARIO / CLIENTE
+          ==================================================================== */}
+      {managingUser && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-lg p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-base font-black text-white">Administrar Cuenta de Usuario</h3>
+                <p className="text-[11px] text-slate-400">{managingUser.email} · UID: {managingUser.uid}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setManagingUser(null)}
+                className="text-slate-400 hover:text-white p-1.5 rounded-lg bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-slate-400 font-semibold mb-1">Nombre</label>
+                <input
+                  type="text"
+                  value={managingUser.displayName}
+                  onChange={(e) => setManagingUser({ ...managingUser, displayName: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-400 font-semibold mb-1">Teléfono</label>
+                <input
+                  type="text"
+                  value={managingUser.phone || ''}
+                  onChange={(e) => setManagingUser({ ...managingUser, phone: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">Rol en Sistema</label>
+                  <select
+                    value={managingUser.role}
+                    onChange={(e) => setManagingUser({ ...managingUser, role: e.target.value as UserRole })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+                  >
+                    <option value="client">Cliente / Usuario Final</option>
+                    <option value="affiliate">Afiliado / Negocio</option>
+                    <option value="promoter">Embajador / Promotor</option>
+                    <option value="admin">Administrador</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-slate-400 font-semibold mb-1">Estado</label>
+                  <select
+                    value={managingUser.approvalStatus || 'approved'}
+                    onChange={(e) =>
+                      setManagingUser({
+                        ...managingUser,
+                        approvalStatus: e.target.value as AffiliateApprovalStatus
+                      })
+                    }
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+                  >
+                    <option value="approved">Aprobado</option>
+                    <option value="pending">Pendiente</option>
+                    <option value="rejected">Suspendido</option>
+                  </select>
+                </div>
+              </div>
+
+              {managingUser.role !== 'affiliate' && (
+                <div className="bg-amber-950/30 border border-amber-700/40 rounded-2xl p-3 flex items-center justify-between gap-3">
+                  <span className="text-[11px] text-amber-200">
+                    ¿Convertir esta cuenta en Afiliado Premium de pago con acceso total?
+                  </span>
+                  <button
+                    type="button"
+                    disabled={actionLoadingId === managingUser.uid}
+                    onClick={() => handleConvertUserToAffiliate(managingUser, 'monthly')}
+                    className="shrink-0 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-3 py-1.5 rounded-xl cursor-pointer"
+                  >
+                    Convertir a Afiliado Premium
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setManagingUser(null)}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold px-4 py-2 rounded-xl cursor-pointer"
+              >
+                Cerrar
+              </button>
+              <button
+                type="button"
+                disabled={isSavingManagedAccount}
+                onClick={handleSaveManagedUser}
+                className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-black px-4 py-2 rounded-xl cursor-pointer"
+              >
+                {isSavingManagedAccount ? 'Guardando...' : 'Guardar Cambios'}
               </button>
             </div>
           </div>

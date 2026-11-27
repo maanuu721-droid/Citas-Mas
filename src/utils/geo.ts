@@ -51,8 +51,10 @@ export function sortAffiliates(
       // Within the same availability group:
       // If user location is active, sort by distance first with a Turbo/Equipo priority nudge
       if (userLocation && a.distanceKm !== undefined && b.distanceKm !== undefined) {
-        const boostA = (a.isTurbo ? 5 : 0) + (a.plan === 'equipo' ? 3 : 0);
-        const boostB = (b.isTurbo ? 5 : 0) + (b.plan === 'equipo' ? 3 : 0);
+        const isTopTierA = a.plan === 'equipo' || a.plan === 'monthly' || a.affiliateTierLevel === 3;
+        const isTopTierB = b.plan === 'equipo' || b.plan === 'monthly' || b.affiliateTierLevel === 3;
+        const boostA = (a.isTurbo ? 5 : 0) + (isTopTierA ? 3 : 0);
+        const boostB = (b.isTurbo ? 5 : 0) + (isTopTierB ? 3 : 0);
 
         if (sortBy === 'nearest') {
           return a.distanceKm - b.distanceKm;
@@ -65,8 +67,10 @@ export function sortAffiliates(
       }
 
       // If no location, sort by Turbo/Plan boost + rating
-      const scoreA = (a.isTurbo ? 100 : 0) + (a.plan === 'equipo' ? 40 : 0) + a.rating * 10 + Math.log(a.reviewCount + 1);
-      const scoreB = (b.isTurbo ? 100 : 0) + (b.plan === 'equipo' ? 40 : 0) + b.rating * 10 + Math.log(b.reviewCount + 1);
+      const isTopTierA = a.plan === 'equipo' || a.plan === 'monthly' || a.affiliateTierLevel === 3;
+      const isTopTierB = b.plan === 'equipo' || b.plan === 'monthly' || b.affiliateTierLevel === 3;
+      const scoreA = (a.isTurbo ? 100 : 0) + (isTopTierA ? 40 : 0) + a.rating * 10 + Math.log(a.reviewCount + 1);
+      const scoreB = (b.isTurbo ? 100 : 0) + (isTopTierB ? 40 : 0) + b.rating * 10 + Math.log(b.reviewCount + 1);
       return scoreB - scoreA;
     }
 
